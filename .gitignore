@@ -1,0 +1,8 @@
+# the following directories have their own separately maintained
+# git repositories
+
+sponge-db/*
+sponge-analyzer/*
+sponge-scraper/*
+sponge-web/*
+
