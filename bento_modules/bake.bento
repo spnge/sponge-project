@@ -1,0 +1,39 @@
+/**  bake.bento
+ *
+ *   Project automation and dependency management in Bento
+ *
+ *
+ **/
+
+site bake [=
+
+    /** base class for tasks **/
+
+
+    boolean target [=
+        name = owner.type
+        target[] depends_on = []
+
+        this task [?]
+
+        // implementation: handle all the dependencies first, and if the all
+        // succeed then execute the task.
+
+        boolean everything_ok(boolean flag) = flag
+        eval(everything_ok(true));
+
+        for target t in depends_on while everything_ok [=
+            eval(everything_ok(t));
+        =]
+
+        if (everything_ok) [=
+            task.exec;
+            task.succeeded;
+        =] else [=
+            false;
+        =]
+    =]
+
+=]
+
+
