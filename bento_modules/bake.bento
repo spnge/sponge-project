@@ -8,22 +8,35 @@
 site bake [=
 
     /** base class for tasks **/
+    
+    task [=
+        keep: boolean succeeded(boolean flag) = flag
+        keep: out(str) = str
+        keep: err(str) = str
+        
+        dynamic log_out(str) [= eval(out(: out + str :)); =]
+        dynamic log_err(str) [= eval(err(: err + str :)); =]
+        
+        dynamic exec [/]
+    =]
 
+    /** base class for targets **/
 
     boolean target [=
         name = owner.type
         target[] depends_on = []
 
         this task [?]
-
-        // implementation: handle all the dependencies first, and if the all
-        // succeed then execute the task.
+        /-- implementation: handle all the dependencies first, and if they all
+         -- succeed then execute the task.
+         --/
 
         boolean everything_ok(boolean flag) = flag
-        eval(everything_ok(true));
 
-        for target t in depends_on while everything_ok [=
-            eval(everything_ok(t));
+        eval(everything_ok(: true :));
+
+        for target t in depends_on until !everything_ok [=
+            eval(everything_ok(: t :));
         =]
 
         if (everything_ok) [=
@@ -33,6 +46,17 @@ site bake [=
             false;
         =]
     =]
+
+    /** common tasks **/
+    
+    task mkdir(path) [=
+    
+        dynamic exec [=
+        
+        =]
+    
+    =]
+
 
 =]
 
