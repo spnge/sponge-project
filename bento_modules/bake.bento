@@ -10,53 +10,127 @@ site bake [=
     /** base class for tasks **/
     
     task [=
+        name = owner.type;
         keep: boolean succeeded(boolean flag) = flag
         keep: out(str) = str
         keep: err(str) = str
         
-        dynamic log_out(str) [= eval(out(: out + str :)); =]
-        dynamic log_err(str) [= eval(err(: err + str :)); =]
+        dynamic log_out(str) [= eval(out(: out + str + br :)); =]
+        dynamic log_err(str) [= eval(err(: err + str + br :)); =]
         
-        dynamic exec [/]
+        log_out("Executing " + name);
+
+        sub;
     =]
 
     /** base class for targets **/
 
-    boolean target [=
+    target [=
         name = owner.type
-        target[] depends_on = []
+        keep: target[] depends_on = []
+        keep: this task [?]
+        
+        /** true if this target has been executed in the current context **/
+        keep: boolean executed(boolean did) = did
+        
+        /** true if this target has been successfully executed in the current context **/
+        keep: boolean status(boolean ok) = ok
+        
+        out = task.out
+        err = task.err
 
-        this task [?]
         /-- implementation: handle all the dependencies first, and if they all
          -- succeed then execute the task.
          --/
 
-        boolean everything_ok(boolean flag) = flag
-
-        eval(everything_ok(: true :));
-
-        for target t in depends_on until !everything_ok [=
-            eval(everything_ok(: t :));
-        =]
-
-        if (everything_ok) [=
-            task.exec;
-            task.succeeded;
-        =] else [=
-            false;
+        dynamic boolean execute [=
+            boolean everything_ok(boolean flag) = flag
+    
+            eval(everything_ok(: true :));
+    
+            for target t in depends_on until !everything_ok [=
+                if (!t.executed) [=
+                    eval(everything_ok(: t.execute :));
+                =] else [=
+                    eval(everything_ok(: t.status :));
+                =]
+            =]
+    
+            if (everything_ok) [=
+                task;
+                eval(executed(true));
+                status(: task.succeeded :);
+            =] else [=
+                false;
+            =]
         =]
     =]
 
-    /** common tasks **/
+    /** the current console buffer. When a target is executed, its output (both normal
+     *  and error) is appended to this buffer.
+     **/
+
+    console_out(str) = str
     
-    task mkdir(path) [=
+    dynamic console_print(str) [=
+        eval(console_out(console_out + str + br));
+    =]
     
-        dynamic exec [=
+    /** base class of web page to display list of targets and instantiate selected targets. Bake
+     *  projects should subclass this definition and add an implementation for top-level targets.
+     **/
+
+    page bakery [=
+        boolean ajax_enabled = true
+        
+        target_param = "target"
+    
+        /** top-level targets (ones available to the user) **/
+        target[] user_targets = []
+    
+        /** target look up map **/
+        target{} target_by_name = { for target t in user_targets [= t.name: t =] }
+    
+        component target_selector(target t) [=
+            target_name = t.name
+        
+            request_button(target_name, target_name, exec_target, target_param, target_name);
         
         =]
+
+        dynamic component exec_target(params{}) [=
+            id = "exec_target"
+            target_name = params{"target"}
+            this target = target_by_name{target_name}
+            
+            if (target_name) [=
+                target;
+                if (target.out) [=
+                    console_print(target.out);
+                =]
+                if (target.err) [=
+                    console_print("*** Error:");
+                    console_print(target.err);
+                =]
+            =]
+
+            [| <tt> |]
+            [= 
+                for line in lines(console_out) [=
+                    line;
+                    br;
+                =]
+            =]
+            [| </tt> |]
+        =]
+        
+        for target t in user_targets [=
+            target_selector(t);
+        =]
+        
+        exec_target;
     
     =]
-
 
 =]
 

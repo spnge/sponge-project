@@ -1,0 +1,26 @@
+/**  sponge-project.bake
+ *
+ *   Task automation for sponge-project 
+ *
+ *
+ **/
+
+site `sponge-project` [=
+
+
+    bakery index [=
+        boolean ajax_enabled = true
+        
+        /** top-level targets (ones available to the user) **/
+        target[] user_targets = [ setup ]
+        
+        target setup [=
+        
+        
+        =]
+    
+    =]
+
+=]
+
+
