@@ -7,6 +7,7 @@
 
 site `sponge-project` [=
 
+    adopt bake
 
     bakery index [=
         boolean ajax_enabled = true
@@ -15,8 +16,9 @@ site `sponge-project` [=
         target[] user_targets = [ setup ]
         
         target setup [=
-        
-        
+            target[] depends_on = []
+            
+            this task = setup_task
         =]
     
     =]

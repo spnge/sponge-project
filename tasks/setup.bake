@@ -1,0 +1,19 @@
+/**  setup.bake
+ *
+ *   Setup the sponge-project environment 
+ *
+ *
+ **/
+
+site `sponge-project` [=
+
+    adopt bake
+
+    task setup_task [=
+        
+    
+    =]
+
+=]
+
+
