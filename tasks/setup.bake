@@ -5,7 +5,7 @@
  *
  **/
 
-site `sponge-project` [=
+bakery `sponge-project` [=
 
     adopt bake
 

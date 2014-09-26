@@ -80,7 +80,7 @@ site bake [=
      *  projects should subclass this definition and add an implementation for top-level targets.
      **/
 
-    page bakery [=
+    page bakepage [=
         boolean ajax_enabled = true
         
         target_param = "target"
