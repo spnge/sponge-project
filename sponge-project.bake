@@ -14,13 +14,17 @@ bakery `sponge-project` [=
         
         /** top-level targets (ones available to the user) **/
         target[] user_targets = [ setup ]
+    =]
+
         
-        target setup [=
-            target[] depends_on = []
+    target setup [=
+        target[] depends_on = [ setup_db,
+                                setup_proxyb,
+                                setup_scraper,
+                                setup_analyzer,
+                                setup_web ]
             
-            this task = setup_task
-        =]
-    
+        this task = setup_task
     =]
 
 =]

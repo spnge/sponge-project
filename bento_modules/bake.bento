@@ -7,6 +7,10 @@
 
 site bake [=
 
+    /------------------------------------------/
+    /-------------- base classes --------------/
+    /------------------------------------------/
+
     /** base class for tasks **/
     
     task [=
@@ -21,6 +25,10 @@ site bake [=
         log_out("Executing " + name);
 
         sub;
+        
+        if (!err) [=
+            eval(succeeded(true));
+        =] 
     =]
 
     /** base class for targets **/
@@ -65,6 +73,21 @@ site bake [=
             =]
         =]
     =]
+    
+    /------------------------------------------/
+    /--------------   modules    --------------/
+    /------------------------------------------/
+
+    module [=
+        name = owner.type
+        origin [?]
+        file module_root = file("./" + name)
+    =]     
+        
+
+    /------------------------------------------/
+    /--------------   console    --------------/
+    /------------------------------------------/
 
     /** the current console buffer. When a target is executed, its output (both normal
      *  and error) is appended to this buffer.
@@ -75,7 +98,12 @@ site bake [=
     dynamic console_print(str) [=
         eval(console_out(console_out + str + br));
     =]
-    
+
+
+    /------------------------------------------/
+    /--------------      UI      --------------/
+    /------------------------------------------/
+
     /** base class of web page to display list of targets and instantiate selected targets. Bake
      *  projects should subclass this definition and add an implementation for top-level targets.
      **/
@@ -129,6 +157,37 @@ site bake [=
         =]
         
         exec_target;
+    
+    =]
+
+    
+    /------------------------------------------/
+    /--------------     tasks    --------------/
+    /------------------------------------------/
+
+    /** useful base classes for various categories of tasks **/
+    
+    /** a task that involves executing a system command **/ 
+    task command_task [=
+        command [?]
+        commands[] = []
+        
+        if (command) [=
+            exec(command);
+        =] else [=
+            for cmd in commands [=
+                exec(cmd);
+            =]
+        =]
+   
+    =]
+
+    task setup_module_task(module m) [=
+    
+        if (!m.module_root.exists) [=
+        
+        
+        =]    
     
     =]
 

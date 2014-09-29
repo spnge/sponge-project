@@ -65,7 +65,7 @@
     /-- Run local bakefile --/
     site_config spongebake_config [=
         name = "sponge-project"
-        bentopath = "sponge-project.bake:bento_modules/bake.bento:tasks/*.bake"
+        bentopath = "sponge-project.bake:bento_modules:tasks/*.bake"
         filepath = "."
     =]    
 
