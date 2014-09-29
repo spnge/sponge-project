@@ -184,9 +184,11 @@ site bake [=
 
     task setup_module_task(module m) [=
     
+        clone_command = "git clone " + m.origin
+       
         if (!m.module_root.exists) [=
-        
-        
+            log_out("Cloning " + m.name + " repository...");
+            exec(clone_command);
         =]    
     
     =]

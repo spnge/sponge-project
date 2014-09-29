@@ -1,0 +1,34 @@
+/**  sponge-modules.bake
+ *
+ *   Module definitions for sponge-project 
+ *
+ *
+ **/
+
+bakery `sponge-project` [=
+
+    adopt bake
+    
+    module db_module [=
+        origin = "https://github.com/spnge/sponge-db.git"
+    =]
+    
+    module analyzer_module [=
+        origin = "https://github.com/spnge/sponge-analyzer.git"
+    =]
+    
+    module scraper_module [=
+        origin = "https://github.com/spnge/sponge-scraper.git"
+    =]
+    
+    module proxyb_module [=
+        origin = "https://github.com/spnge/sponge-proxyb.git"
+    =]
+    
+    module web_module [=
+        origin = "https://github.com/spnge/sponge-web.git"
+    =]
+
+=]
+
+
