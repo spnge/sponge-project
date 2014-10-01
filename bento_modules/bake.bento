@@ -97,6 +97,7 @@ site bake [=
     
     dynamic console_print(str) [=
         eval(console_out(console_out + str + br));
+System.out("$>> " + str);
     =]
 
 
