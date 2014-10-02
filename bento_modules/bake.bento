@@ -133,7 +133,13 @@ System.out("$>> " + str);
             this target = target_by_name{target_name}
             
             if (target_name) [=
-                target;
+                log("Executing " + target_name);
+                if (target.execute) [=
+                    log("Succeeded");
+                =] else [=
+                    log("FAILED");
+                =]
+                    
                 if (target.out) [=
                     console_print(target.out);
                 =]

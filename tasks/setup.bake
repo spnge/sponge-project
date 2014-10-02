@@ -13,8 +13,23 @@ bakery `sponge-project` [=
     
     =]
 
-    task setup_repos [=
+    setup_module_task(db_module) setup_db [=
     
+    =]
+
+    setup_module_task(analyzer_module) setup_analyzer [=
+    
+    =]
+
+    setup_module_task(proxyb_module) setup_proxyb [=
+    
+    =]
+
+    setup_module_task(scraper_module) setup_scraper [=
+    
+    =]
+
+    setup_module_task(web_module) setup_web [=
     
     =]
 
