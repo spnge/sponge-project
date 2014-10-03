@@ -16,13 +16,8 @@ site bake [=
     task [=
         name = owner.type;
         keep: boolean succeeded(boolean flag) = flag
-        keep: out(str) = str
-        keep: err(str) = str
         
-        dynamic log_out(str) [= eval(out(: out + str + br :)); =]
-        dynamic log_err(str) [= eval(err(: err + str + br :)); =]
-        
-        log_out("Executing " + name);
+        console_print("Executing " + name);
 
         sub;
         
@@ -44,9 +39,6 @@ site bake [=
         /** true if this target has been successfully executed in the current context **/
         keep: boolean status(boolean ok) = ok
         
-        out = task.out
-        err = task.err
-
         /-- implementation: handle all the dependencies first, and if they all
          -- succeed then execute the task.
          --/
@@ -80,8 +72,9 @@ site bake [=
 
     module [=
         name = owner.type
+        path = "./" + name
         origin [?]
-        file module_root = file("./" + name)
+        file module_root = file(path)
     =]     
         
 
@@ -96,8 +89,8 @@ site bake [=
     console_out(str) = str
     
     dynamic console_print(str) [=
-        eval(console_out(console_out + str + br));
-System.out("$>> " + str);
+        eval(console_out(: console_out + str + br :));
+        log("$>> " + str);
     =]
 
 
@@ -111,6 +104,7 @@ System.out("$>> " + str);
 
     page bakepage [=
         boolean ajax_enabled = true
+        title = sitename
         
         target_param = "target"
     
@@ -139,14 +133,6 @@ System.out("$>> " + str);
                 =] else [=
                     log("FAILED");
                 =]
-                    
-                if (target.out) [=
-                    console_print(target.out);
-                =]
-                if (target.err) [=
-                    console_print("*** Error:");
-                    console_print(target.err);
-                =]
             =]
 
             [| <tt> |]
@@ -158,6 +144,10 @@ System.out("$>> " + str);
             =]
             [| </tt> |]
         =]
+        
+        [| <h2> |]
+        title;
+        [| </h2> |]
         
         for target t in user_targets [=
             target_selector(t);
@@ -194,10 +184,11 @@ System.out("$>> " + str);
         clone_command = "git clone " + m.origin
        
         if (!m.module_root.exists) [=
-            log_out("Cloning " + m.name + " repository...");
+            console_print("Cloning " + m.name + " repository...");
             exec(clone_command);
-        =]    
-    
+        =]
+        
+        sub;    
     =]
 
 =]
