@@ -9,24 +9,26 @@ bakery `sponge-project` [=
 
     adopt bake
     
-    module db_module [=
-        origin = "https://github.com/spnge/sponge-db.git"
+    /** base class for all modules in sponge-project **/
+    module sponge_module [=
+        origin = "https://github.com/spnge/" + name + ".git"
+    =]
+
+    /--------------   modules    --------------/
+   
+    sponge_module `sponge-db` [=
     =]
     
-    module analyzer_module [=
-        origin = "https://github.com/spnge/sponge-analyzer.git"
+    sponge_module `sponge-analyzer` [=
     =]
     
-    module scraper_module [=
-        origin = "https://github.com/spnge/sponge-scraper.git"
+    sponge_module `sponge-scraper` [=
     =]
     
-    module proxyb_module [=
-        origin = "https://github.com/spnge/sponge-proxyb.git"
+    sponge_module `sponge-proxyb` [=
     =]
     
-    module web_module [=
-        origin = "https://github.com/spnge/sponge-web.git"
+    sponge_module `sponge-web` [=
     =]
 
 =]

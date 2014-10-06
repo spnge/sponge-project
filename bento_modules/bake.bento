@@ -47,6 +47,8 @@ site bake [=
             boolean everything_ok(boolean flag) = flag
     
             eval(everything_ok(: true :));
+            
+            console_print("execute " + t.name);
     
             for target t in depends_on until !everything_ok [=
                 if (!t.executed) [=
@@ -88,15 +90,48 @@ site bake [=
 
     console_out(str) = str
     
+    boolean console_changed(boolean changed) = changed
+    
     dynamic console_print(str) [=
         eval(console_out(: console_out + str + br :));
         log("$>> " + str);
+        eval(console_changed(: true :));
+    =]
+
+    dynamic component console(request r) [=
+        component_class = "console"
+        color bgcolor = "black"         
+        style [| margin-top: 1em; padding: 1em; border: 2px inset #efefef; min-height: 10em; |]
+
+        
+        with (r) [=
+            log("console called with request");
+            for int i from 0 to 60 until console_changed [=
+                sleep(50);
+            =]
+        =] else [=
+            log("console called without request");
+        =]
+        log(console_changed ? "console has changed" : "console has not changed");
+        
+        eval(console_changed(: false :));
+    
+        [| <tt> |]
+        [= 
+            for line in lines(console_out) [=
+                line;
+                br;
+            =]
+        =]
+        [| </tt> |]
     =]
 
 
     /------------------------------------------/
     /--------------      UI      --------------/
     /------------------------------------------/
+
+    color main_bgcolor = "#d7f1e7"
 
     /** base class of web page to display list of targets and instantiate selected targets. Bake
      *  projects should subclass this definition and add an implementation for top-level targets.
@@ -106,55 +141,115 @@ site bake [=
         boolean ajax_enabled = true
         title = sitename
         
+        style [| 
+            html, body { 
+                width: 100%;
+                height: 100%;
+                margin: 0 -1em 0 0;
+                background: [= main_bgcolor; =];
+            }
+            div {
+                background: [= main_bgcolor; =];
+            }
+            .console {
+                color: #55ff33;
+                background: #232323;
+                font-family: "Courier New", Courier, monospace;
+                font-weight: bold;
+                font-size: 0.875em;
+            }
+            
+        |]
+        
+        onload_script [|
+            // long poll
+            pollComponent("bake_console", 5000);            
+        |] 
+        
         target_param = "target"
     
         /** top-level targets (ones available to the user) **/
         target[] user_targets = []
+        
+        target[] all_targets = [ for target t in user_targets [= t, for target d in t.depends_on [= d =] =] ] 
     
         /** target look up map **/
-        target{} target_by_name = { for target t in user_targets [= t.name: t =] }
+        target{} target_by_name = { for target t in all_targets [= t.name: t =] }
+
+        dynamic console(*) bake_console(request r) [=
+            id = "bake_console"
+        =]
+
+
+        dynamic component target_panel(target t) [=
+            component_class = "target_panel"
+            id = t.name + "_panel"
+        
+            [| <table><tr><td> |]
+            target_selector(t);
+            [| </td><td> |]
+            target_exec(t);
+            [| </td></tr></table> |]
+        =]
+
     
-        component target_selector(target t) [=
+        dynamic component target_selector(target t) [=
+            id = t.name + "_selector"
             target_name = t.name
+            exec_id = t.name + "_exec" 
         
-            request_button(target_name, target_name, exec_target, target_param, target_name);
-        
+            request_button(target_name, target_name, exec_id, target_exec, target_param, target_name);
         =]
 
-        dynamic component exec_target(params{}) [=
-            id = "exec_target"
-            target_name = params{"target"}
-            this target = target_by_name{target_name}
+        dynamic component target_exec(target t),(params{}) [=
+            style [|
+                padding-right: 0.5em;
+                padding-top: 1em;
+                padding-left: 0.5em;
+                background: [= main_bgcolor; =];
+                color: #515151;
+                min-height: 3em;
+            |]
             
-            if (target_name) [=
-                log("Executing " + target_name);
-                if (target.execute) [=
-                    log("Succeeded");
-                =] else [=
-                    log("FAILED");
-                =]
-            =]
-
-            [| <tt> |]
-            [= 
-                for line in lines(console_out) [=
-                    line;
-                    br;
-                =]
-            =]
-            [| </tt> |]
+            name = "target_exec"
+            
+            target_name = params ? params{"target"} : t.name
+            target this_target = t ? t : target_by_name{target_name}
+            id = target_name + "_exec"
+             
+            with (params) [|
+                Executing [= target_name; =]...
+                <br/>
+                [= if (target.execute) [|
+                    Succeeded.
+                |] else [|
+                    FAILED.
+                |] =]
+                <br/>
+            |] else [|
+                Ready.
+                <br/>
+            |]
         =]
+
+        [| <div style="margin: 1em"> |]
         
         [| <h2> |]
         title;
         [| </h2> |]
         
         for target t in user_targets [=
-            target_selector(t);
+            target_panel(t);
+            [| <div style="padding-left: 1.5em;"> |]
+            for target d in t.depends_on [=
+                target_panel(d);
+            =]
+            [| </div> |] 
         =]
         
-        exec_target;
-    
+        bake_console;
+        
+        [| </div> |]
     =]
 
     
@@ -182,10 +277,14 @@ site bake [=
     task setup_module_task(module m) [=
     
         clone_command = "git clone " + m.origin
-       
+
+        console_print("Looking for directory " + m.module_root + "...");
         if (!m.module_root.exists) [=
             console_print("Cloning " + m.name + " repository...");
+            console_print("    exec " + clone_command);
             exec(clone_command);
+        =] else [=
+            console_print("Directory exists, assuming repository exists too");
         =]
         
         sub;    
