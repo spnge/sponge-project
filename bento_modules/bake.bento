@@ -106,7 +106,7 @@ site bake [=
         
         with (r) [=
             log("console called with request");
-            for int i from 0 to 60 until console_changed [=
+            for int i from 0 to 200 until console_changed [=
                 sleep(50);
             =]
         =] else [=
@@ -130,8 +130,18 @@ site bake [=
     /------------------------------------------/
     /--------------      UI      --------------/
     /------------------------------------------/
+    
+    /---- site variables ----/
+
+    
+    float left_panel_width(float ems) = ems
 
     color main_bgcolor = "#d7f1e7"
+
+    session_init [=
+        left_panel_width(16);
+    =]
+
 
     /** base class of web page to display list of targets and instantiate selected targets. Bake
      *  projects should subclass this definition and add an implementation for top-level targets.
@@ -151,6 +161,7 @@ site bake [=
             div {
                 background: [= main_bgcolor; =];
             }
+            
             .console {
                 color: #55ff33;
                 background: #232323;
@@ -158,12 +169,27 @@ site bake [=
                 font-weight: bold;
                 font-size: 0.875em;
             }
+
+            #left_panel {
+               margin: 1em;
+               width: [= left_panel_width; =]em;
+               float: left;
+            }
+
+            #bake_console {
+                margin: 0;
+                position: absolute;
+                left: [= left_panel_width; =]em;
+                top: 0;
+                right: 0;
+                bottom: 0;
+            }
             
         |]
         
         onload_script [|
             // long poll
-            pollComponent("bake_console", 5000);            
+            pollComponent("bake_console", 500);            
         |] 
         
         target_param = "target"
@@ -220,7 +246,7 @@ site bake [=
             with (params) [|
                 Executing [= target_name; =]...
                 <br/>
-                [= if (target.execute) [|
+                [= if (this_target.execute) [|
                     Succeeded.
                 |] else [|
                     FAILED.
@@ -232,12 +258,12 @@ site bake [=
             |]
         =]
 
-        [| <div style="margin: 1em"> |]
+        [| <div id="left_panel"> |]
         
         [| <h2> |]
         title;
         [| </h2> |]
-        
+
         for target t in user_targets [=
             target_panel(t);
             [| <div style="padding-left: 1.5em;"> |]
@@ -246,10 +272,10 @@ site bake [=
             =]
             [| </div> |] 
         =]
+        [| </div> |]
         
         bake_console;
         
-        [| </div> |]
     =]
 
     
