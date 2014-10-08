@@ -10,27 +10,27 @@ bakery `sponge-project` [=
     adopt bake
 
     task setup_task [=
-    
+        console_print("setup_task completed");
     =]
 
-    setup_module_task(db_module) setup_db_task [=
-    
+    setup_module_task(`sponge-db`) setup_db_task [=
+        console_print("setup_db_task completed");
     =]
 
-    setup_module_task(analyzer_module) setup_analyzer_task [=
-    
+    setup_module_task(`sponge-analyzer`) setup_analyzer_task [=
+        console_print("setup_analyser_task completed");
     =]
 
-    setup_module_task(proxyb_module) setup_proxyb_task [=
-    
+    setup_module_task(`sponge-proxyb`) setup_proxyb_task [=
+        console_print("setup_proxyb_task completed");
     =]
 
-    setup_module_task(scraper_module) setup_scraper_task [=
-    
+    setup_module_task(`sponge-scraper`) setup_scraper_task [=
+        console_print("setup_scraper_task completed");
     =]
 
-    setup_module_task(web_module) setup_web_task [=
-    
+    setup_module_task(`sponge-web`) setup_web_task [=
+        console_print("setup_web_task completed");
     =]
 
 =]

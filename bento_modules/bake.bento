@@ -13,7 +13,7 @@ site bake [=
 
     /** base class for tasks **/
     
-    task [=
+    dynamic task [=
         name = owner.type;
         keep: boolean succeeded(boolean flag) = flag
         
@@ -48,7 +48,7 @@ site bake [=
     
             eval(everything_ok(: true :));
             
-            console_print("execute " + t.name);
+            console_print("Checking dependencies for target " + name);
     
             for target t in depends_on until !everything_ok [=
                 if (!t.executed) [=
@@ -59,10 +59,12 @@ site bake [=
             =]
     
             if (everything_ok) [=
+                console_print("Dependencies for target " + name  + " satisfied; executing task " + task.name);
                 task;
                 eval(executed(true));
                 status(: task.succeeded :);
             =] else [=
+                console_print("Unable to satisfy dependencies for target " + name);
                 false;
             =]
         =]
@@ -139,7 +141,7 @@ site bake [=
     color main_bgcolor = "#d7f1e7"
 
     session_init [=
-        left_panel_width(16);
+        left_panel_width(22);
     =]
 
 
@@ -170,16 +172,31 @@ site bake [=
                 font-size: 0.875em;
             }
 
+            .vertical_bar {
+                height: 100%;
+                width: 0.5em;
+                background: gray;
+                border-left: 0.125em raised gray;  
+                border-right: 0.125em raised gray;  
+            }
+
             #left_panel {
-               margin: 1em;
-               width: [= left_panel_width; =]em;
-               float: left;
+                margin: 1em;
+                width: [= left_panel_width; =]em;
+                float: left;
+            }
+            
+            #left_console_divider {
+                position: absolute;
+                left: [= left_panel_width; =]em;
+                top: 0;
+                bottom: 0;
             }
 
             #bake_console {
                 margin: 0;
                 position: absolute;
-                left: [= left_panel_width; =]em;
+                left: [= (left_panel_width + 1); =]em;
                 top: 0;
                 right: 0;
                 bottom: 0;
@@ -189,7 +206,7 @@ site bake [=
         
         onload_script [|
             // long poll
-            pollComponent("bake_console", 500);            
+            pollComponent("bake_console", 5);            
         |] 
         
         target_param = "target"
@@ -206,6 +223,10 @@ site bake [=
             id = "bake_console"
         =]
 
+        component left_console_divider [=
+            id = "left_console_divider"
+            component_class = "vertical_bar"
+        =]
 
         dynamic component target_panel(target t) [=
             component_class = "target_panel"
@@ -274,6 +295,8 @@ site bake [=
         =]
         [| </div> |]
         
+        left_console_divider;
+        
         bake_console;
         
     =]
@@ -304,7 +327,7 @@ site bake [=
     
         clone_command = "git clone " + m.origin
 
-        console_print("Looking for directory " + m.module_root + "...");
+        console_print("Looking for directory " + m.module_root.name + "...");
         if (!m.module_root.exists) [=
             console_print("Cloning " + m.name + " repository...");
             console_print("    exec " + clone_command);
