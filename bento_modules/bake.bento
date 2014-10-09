@@ -102,9 +102,6 @@ site bake [=
 
     dynamic component console(request r) [=
         component_class = "console"
-        color bgcolor = "black"         
-        style [| margin-top: 1em; padding: 1em; border: 2px inset #efefef; min-height: 10em; |]
-
         
         with (r) [=
             log("console called with request");
@@ -157,11 +154,21 @@ site bake [=
             html, body { 
                 width: 100%;
                 height: 100%;
-                margin: 0 -1em 0 0;
+                margin: 0 0 0 0;
                 background: [= main_bgcolor; =];
             }
             div {
                 background: [= main_bgcolor; =];
+            }
+            
+            #main_container {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
             }
             
             .console {
@@ -170,43 +177,61 @@ site bake [=
                 font-family: "Courier New", Courier, monospace;
                 font-weight: bold;
                 font-size: 0.875em;
+                padding: 1em;
+                border: 0.125em solid #77ff77;
+                min-height: 10em;
+                width: 100%
             }
 
             .vertical_bar {
                 height: 100%;
-                width: 0.5em;
-                background: gray;
-                border-left: 0.125em raised gray;  
-                border-right: 0.125em raised gray;  
+                width: 0.25em;
+                background: #dddddd;  
+                border-width: 0 0.125em 0 0.125em;
+                border-style: outset;
+                border-color: white;  
             }
 
             #left_panel {
-                margin: 1em;
-                width: [= left_panel_width; =]em;
-                float: left;
+                position: absolute;
+                padding: 1em;
+                left: 0;
+                top: 0;
+                width: [= (left_panel_width - 2); =]em;
             }
             
-            #left_console_divider {
+            #size_bar {
                 position: absolute;
-                left: [= left_panel_width; =]em;
+                left: [= (left_panel_width + 2); =]em;
                 top: 0;
                 bottom: 0;
+                z-index: 1001;
             }
 
+            #right_panel {
+                background: #dddddd;
+                margin: 0;
+                position: absolute;
+                left: [= (left_panel_width + 2.5); =]em;
+                top: 0;
+                right: 2em;
+                bottom: 0;
+            }
+            
             #bake_console {
                 margin: 0;
                 position: absolute;
-                left: [= (left_panel_width + 1); =]em;
+                left: 0;
                 top: 0;
-                right: 0;
+                right: 1em;
                 bottom: 0;
             }
-            
         |]
         
         onload_script [|
             // long poll
-            pollComponent("bake_console", 5);            
+            pollComponent("bake_console", 5);
+            size_bar_init();            
         |] 
         
         target_param = "target"
@@ -223,8 +248,8 @@ site bake [=
             id = "bake_console"
         =]
 
-        component left_console_divider [=
-            id = "left_console_divider"
+        component size_bar [=
+            id = "size_bar"
             component_class = "vertical_bar"
         =]
 
@@ -279,6 +304,9 @@ site bake [=
             |]
         =]
 
+        /------- top-level wrapper around everything -------/
+        [| <div id="main_container"> |]
+        
         [| <div id="left_panel"> |]
         
         [| <h2> |]
@@ -295,11 +323,60 @@ site bake [=
         =]
         [| </div> |]
         
-        left_console_divider;
+        size_bar;
         
+        [| <div id="right_panel"> |]
         bake_console;
-        
+        [| </div> |]
+
+        [| </div> |]
+
+        size_bar_script;        
     =]
+
+
+    size_bar_script [|
+        <script>
+        var main_container;
+        var size_bar;
+        var left_panel;
+        var right_panel;
+        var last_x;
+        function size_bar_init() {
+            main_container = document.getElementById("main_container");
+            size_bar = document.getElementById("size_bar");
+            left_panel = document.getElementById("left_panel");
+            right_panel = document.getElementById("right_panel");
+            size_bar.addEventListener("mousedown", size_bar_select, false);
+            window.addEventListener("mouseup", size_bar_release, false);
+        }
+        function size_bar_release() {
+            window.removeEventListener("mousemove", size_bar_drag, true);
+            main_container.style.cursor = "default";
+            return false;
+        }
+        function size_bar_select(e) {
+            window.addEventListener("mousemove", size_bar_drag, true);
+            main_container.style.cursor = "move";
+            last_x = e.clientX;
+            e.stopPropagation();
+            return false;
+        }
+        function size_bar_drag(e) {
+            var dx = e.clientX - last_x;
+            last_x = e.clientX;
+            var newLeft = size_bar.offsetLeft + dx;
+            size_bar.style.left = newLeft + "px";
+            e.stopPropagation();
+            return false;
+        }        
+
+        
+        </script>
+    |]
+    
+    
+    
 
     
     /------------------------------------------/
