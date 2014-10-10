@@ -359,19 +359,24 @@ site bake [=
             window.addEventListener("mousemove", size_bar_drag, true);
             main_container.style.cursor = "move";
             last_x = e.clientX;
+            e.preventDefault();
             e.stopPropagation();
             return false;
         }
         function size_bar_drag(e) {
             var dx = e.clientX - last_x;
             last_x = e.clientX;
-            var newLeft = size_bar.offsetLeft + dx;
-            size_bar.style.left = newLeft + "px";
+            var newLeft = (size_bar.offsetLeft + dx) + "px";
+            var newRight = (size_bar.offsetLeft + size_bar.offsetWidth + dx) + "px";
+            
+            size_bar.style.left = newLeft;
+            left_panel.style.width = newLeft;
+            right_panel.style.left = newRight;
+            e.preventDefault();
             e.stopPropagation();
             return false;
         }        
-
-        
+       
         </script>
     |]
     
