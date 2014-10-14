@@ -8,6 +8,13 @@
 site bake [=
 
     /------------------------------------------/
+    /-------------- version info --------------/
+    /------------------------------------------/
+
+    bake_version = "0.1"
+
+
+    /------------------------------------------/
     /-------------- base classes --------------/
     /------------------------------------------/
 
@@ -95,7 +102,8 @@ site bake [=
     boolean console_changed(boolean changed) = changed
     
     dynamic console_print(str) [=
-        eval(console_out(: console_out + str + br :));
+        new_out = console_out + str
+        console_out(: new_out + '\r' :);
         log("$>> " + str);
         eval(console_changed(: true :));
     =]
@@ -103,26 +111,25 @@ site bake [=
     dynamic component console(request r) [=
         component_class = "console"
         
+        dynamic display_contents [=
+            log(console_changed ? "console has changed" : "console has not changed");
+            eval(console_changed(: false :));
+            [| <textarea wrap="off"> |]
+            console_out;
+            [| </textarea> |]
+        =]
+
         with (r) [=
             log("console called with request");
-            for int i from 0 to 200 until console_changed [=
-                sleep(50);
+            for int i from 0 to 100 until console_changed [=
+                log("  ...no change in console");
+                sleep(10000);
             =]
         =] else [=
             log("console called without request");
         =]
-        log(console_changed ? "console has changed" : "console has not changed");
         
-        eval(console_changed(: false :));
-    
-        [| <tt> |]
-        [= 
-            for line in lines(console_out) [=
-                line;
-                br;
-            =]
-        =]
-        [| </tt> |]
+        display_contents;
     =]
 
 
@@ -139,6 +146,8 @@ site bake [=
 
     session_init [=
         left_panel_width(22);
+        console_print("bake version " + bake_version);
+        console_print("$ ");
     =]
 
 
@@ -170,17 +179,19 @@ site bake [=
                 margin: 0;
                 padding: 0;
             }
-            
-            .console {
+
+            .console textarea {
+                margin: 0;
+                width: 100%;
+                height: 100%;
                 color: #55ff33;
                 background: #232323;
+                border: 0.125em solid #77ff77;
                 font-family: "Courier New", Courier, monospace;
                 font-weight: bold;
                 font-size: 0.875em;
-                padding: 1em;
-                border: 0.125em solid #77ff77;
                 min-height: 10em;
-                width: 100%
+                resize: none;
             }
 
             .vertical_bar {
@@ -201,6 +212,7 @@ site bake [=
             }
             
             #size_bar {
+                cursor: pointer;
                 position: absolute;
                 left: [= (left_panel_width + 2); =]em;
                 top: 0;
@@ -214,17 +226,13 @@ site bake [=
                 position: absolute;
                 left: [= (left_panel_width + 2.5); =]em;
                 top: 0;
-                right: 2em;
-                bottom: 0;
+                right: 0.5em;
+                bottom: 0.5em;
             }
             
             #bake_console {
-                margin: 0;
-                position: absolute;
-                left: 0;
-                top: 0;
-                right: 1em;
-                bottom: 0;
+                width: 100%;
+                height: 100%;
             }
         |]
         
@@ -352,12 +360,12 @@ site bake [=
         }
         function size_bar_release() {
             window.removeEventListener("mousemove", size_bar_drag, true);
-            main_container.style.cursor = "default";
+            size_bar.style.cursor = "pointer";
             return false;
         }
         function size_bar_select(e) {
             window.addEventListener("mousemove", size_bar_drag, true);
-            main_container.style.cursor = "move";
+            size_bar.style.cursor = "move";
             last_x = e.clientX;
             e.preventDefault();
             e.stopPropagation();
@@ -412,8 +420,7 @@ site bake [=
         console_print("Looking for directory " + m.module_root.name + "...");
         if (!m.module_root.exists) [=
             console_print("Cloning " + m.name + " repository...");
-            console_print("    exec " + clone_command);
-            exec(clone_command);
+            console_print("    " + exec(clone_command));
         =] else [=
             console_print("Directory exists, assuming repository exists too");
         =]
