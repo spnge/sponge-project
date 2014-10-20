@@ -93,36 +93,50 @@ site bake [=
     /--------------   console    --------------/
     /------------------------------------------/
 
+    /** the current console input prompt **/
+    
+    prompt(p) = p
+    
+    static DEFAULT_PROMPT = "> "
+
     /** the current console buffer. When a target is executed, its output (both normal
      *  and error) is appended to this buffer.
      **/
 
-    console_out(str) = str
+    console_out(contents) = contents
     
     boolean console_changed(boolean changed) = changed
     
     dynamic console_print(str) [=
-        new_out = console_out + str
-        console_out(: new_out + '\r' :);
-        log("$>> " + str);
-        eval(console_changed(: true :));
+        if (str) [=
+            new_out = console_out + str
+            console_out(: new_out + '\r' :);
+            log(">> " + str);
+            eval(console_changed(: true :));
+        =]
     =]
-
+    
+    dynamic console_clear [=
+        if (console_out) [=
+            console_out("");
+            eval(console_changed(: true :));
+        =]
+    =]
+    
     dynamic component console(request r) [=
         component_class = "console"
         
         dynamic display_contents [=
             log(console_changed ? "console has changed" : "console has not changed");
             eval(console_changed(: false :));
-            [| <textarea wrap="off"> |]
+            [| <textarea wrap="off" id="console_textarea"> |]
             console_out;
             [| </textarea> |]
         =]
 
         with (r) [=
             log("console called with request");
-            for int i from 0 to 100 until console_changed [=
-                log("  ...no change in console");
+            for until console_changed [=
                 sleep(10000);
             =]
         =] else [=
@@ -132,7 +146,16 @@ site bake [=
         display_contents;
     =]
 
-
+    console_init_script [|
+        // long poll
+        pollComponent("bake_console", 5000, function() {
+               var console_textarea = document.getElementById("console_textarea");
+               if (console_textarea !== undefined) {
+                    console_textarea.scrollTop = console_textarea.scrollHeight;
+                }
+            });
+    |]
+    
     /------------------------------------------/
     /--------------      UI      --------------/
     /------------------------------------------/
@@ -202,6 +225,35 @@ site bake [=
                 border-style: outset;
                 border-color: white;  
             }
+            
+            .status_box {
+                height: 1em;
+                width: 1em;
+                border-width: 0.125em;
+                border-style: inset;
+                border-color: white;  
+                margin: 0.25em;
+            }
+            
+            .status_default {
+                background: [= main_bgcolor; =];
+            }
+            
+            .status_completed {
+                background: black;
+            }
+            
+            .status_executing: {
+                background: yellow;
+            }
+            
+            .status_succeeded {
+                background: green;
+            }
+            
+            .status_failed {
+                background: red;
+            }
 
             #left_panel {
                 position: absolute;
@@ -236,9 +288,12 @@ site bake [=
             }
         |]
         
-        onload_script [|
-            // long poll
-            pollComponent("bake_console", 5);
+        onload_script [=
+            console_init_script;
+            size_bar_init_script;
+        =]
+            
+        size_bar_init_script [|
             size_bar_init();            
         |] 
         
@@ -339,7 +394,8 @@ site bake [=
 
         [| </div> |]
 
-        size_bar_script;        
+        size_bar_script;
+        util_script;        
     =]
 
 
@@ -387,8 +443,40 @@ site bake [=
        
         </script>
     |]
-    
-    
+
+
+    util_script [|    
+
+        function addClass(element, classToAdd) {
+            var currentClassValue = element.className;
+            if (currentClassValue.indexOf(classToAdd) == -1) {
+                if ((currentClassValue == null) || (currentClassValue === "")) {
+                    element.className = classToAdd;
+                } else {
+                    element.className += " " + classToAdd;
+                }
+            }
+        }
+
+        function removeClass(element, classToRemove) {
+            var currentClassValue = element.className;
+
+            if (currentClassValue == classToRemove) {
+                element.className = "";
+                return;
+            }
+
+            var classValues = currentClassValue.split(" ");
+            var filteredList = [];
+
+            for (var i = 0 ; i < classValues.length; i++) {
+                if (classToRemove != classValues[i]) {
+                    filteredList.push(classValues[i]);
+                }
+            }
+            element.className = filteredList.join(" ");
+        }
+    |]    
     
 
     
@@ -396,7 +484,21 @@ site bake [=
     /--------------     tasks    --------------/
     /------------------------------------------/
 
-    /** useful base classes for various categories of tasks **/
+    /** exec wrapper that sends output to console **/
+    
+    dynamic console_exec(cmd) [=
+        dynamic exec_out = exec.out
+
+        log("console_exec(" + cmd + ");");
+        console_print(prompt + cmd);
+        exec(cmd);
+        
+        for until !exec.is_running [=
+            console_print(exec_out);
+        =]
+        console_print(exec_out);
+    =] 
+    
     
     /** a task that involves executing a system command **/ 
     task command_task [=
@@ -404,23 +506,22 @@ site bake [=
         commands[] = []
         
         if (command) [=
-            exec(command);
+            console_exec(command);
         =] else [=
             for cmd in commands [=
-                exec(cmd);
+                console_exec(cmd);
             =]
         =]
    
     =]
 
     task setup_module_task(module m) [=
-    
         clone_command = "git clone " + m.origin
 
         console_print("Looking for directory " + m.module_root.name + "...");
         if (!m.module_root.exists) [=
             console_print("Cloning " + m.name + " repository...");
-            console_print("    " + exec(clone_command));
+            console_exec(clone_command);
         =] else [=
             console_print("Directory exists, assuming repository exists too");
         =]
