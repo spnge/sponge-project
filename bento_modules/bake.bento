@@ -225,14 +225,22 @@ site bake [=
                 border-style: outset;
                 border-color: white;  
             }
+
+            .target_selector {
+                width: 10em;
+                min-width: 10em;
+            }
             
             .status_box {
                 height: 1em;
                 width: 1em;
+                min-height: 1em;
+                min-width: 1em;
                 border-width: 0.125em;
                 border-style: inset;
                 border-color: white;  
                 margin: 0.25em;
+                padding: 0.125em;
             }
             
             .status_default {
@@ -319,14 +327,15 @@ site bake [=
         dynamic component target_panel(target t) [=
             component_class = "target_panel"
             id = t.name + "_panel"
-        
-            [| <table><tr><td> |]
+
+            target_state(t);        
             target_selector(t);
-            [| </td><td> |]
             target_exec(t);
-            [| </td></tr></table> |]
         =]
 
+        dynamic component target_state(target t) [=
+            component_class = "target_state status_box"
+        =]
     
         dynamic component target_selector(target t) [=
             id = t.name + "_selector"
@@ -337,34 +346,13 @@ site bake [=
         =]
 
         dynamic component target_exec(target t),(params{}) [=
-            style [|
-                padding-right: 0.5em;
-                padding-top: 1em;
-                padding-left: 0.5em;
-                background: [= main_bgcolor; =];
-                color: #515151;
-                min-height: 3em;
-            |]
+            component_class = "target_exec status_box"
             
             name = "target_exec"
             
             target_name = params ? params{"target"} : t.name
             target this_target = t ? t : target_by_name{target_name}
             id = target_name + "_exec"
-             
-            with (params) [|
-                Executing [= target_name; =]...
-                <br/>
-                [= if (this_target.execute) [|
-                    Succeeded.
-                |] else [|
-                    FAILED.
-                |] =]
-                <br/>
-            |] else [|
-                Ready.
-                <br/>
-            |]
         =]
 
         /------- top-level wrapper around everything -------/
