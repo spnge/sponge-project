@@ -225,12 +225,36 @@ site bake [=
                 border-style: outset;
                 border-color: white;  
             }
+            
+            .table_panel {
+                display: table;
+            }
+
+            .body_panel {
+                display: table-row-group;
+            }
+           
+            .target_panel {
+                display: table-row;
+                width: 14em;
+            }
+            
+            .target_state {
+                display: table-cell;
+                width: 1.5em;
+            }
 
             .target_selector {
+                display: table-cell;
                 width: 10em;
                 min-width: 10em;
             }
             
+            .target_exec {
+                display: table-cell;
+                width: 1.5em;
+            }
+
             .status_box {
                 height: 1em;
                 width: 1em;
@@ -323,6 +347,14 @@ site bake [=
             id = "size_bar"
             component_class = "vertical_bar"
         =]
+        
+        dynamic component status_box(params{}) [=
+            component_class = "status_box"
+            color bg_color = (params{"color"} ? params_color : main_bgcolor);            
+
+            log("in status_box");
+            sub;
+        =]
 
         dynamic component target_panel(target t) [=
             component_class = "target_panel"
@@ -332,9 +364,18 @@ site bake [=
             target_selector(t);
             target_exec(t);
         =]
+        
+        dynamic component target_state(target t),(params{}) [=
+            component_class = "target_state"
+            name = "target_state"
+            target_name = params ? params{"target"} : t.name
+            id = target_name + "_state" 
 
-        dynamic component target_state(target t) [=
-            component_class = "target_state status_box"
+            dynamic status_box(*) target_status(params{}) [/]
+
+            log("about to do target_status");
+            target_status(params);
+            log("did target_status");
         =]
     
         dynamic component target_selector(target t) [=
@@ -346,31 +387,32 @@ site bake [=
         =]
 
         dynamic component target_exec(target t),(params{}) [=
-            component_class = "target_exec status_box"
-            
+            component_class = "target_exec"
             name = "target_exec"
-            
             target_name = params ? params{"target"} : t.name
-            target this_target = t ? t : target_by_name{target_name}
             id = target_name + "_exec"
+            
+            dynamic status_box(*) exec_status(params{}) [/]
+            
+            exec_status(params);
         =]
 
         /------- top-level wrapper around everything -------/
         [| <div id="main_container"> |]
         
-        [| <div id="left_panel"> |]
+        [| <div id="left_panel" class="table_panel"> |]
+        
         
         [| <h2> |]
         title;
         [| </h2> |]
 
-        for target t in user_targets [=
+        
+        for target t in all_targets [=
             target_panel(t);
-            [| <div style="padding-left: 1.5em;"> |]
             for target d in t.depends_on [=
                 target_panel(d);
             =]
-            [| </div> |] 
         =]
         [| </div> |]
         
@@ -385,6 +427,74 @@ site bake [=
         size_bar_script;
         util_script;        
     =]
+
+/---- TEST ----/
+
+t1 [=
+        target_param = "target"
+
+        dynamic component status_box(),(params{}) [=
+            component_class = "status_box"
+            color bg_color = (params{"color"} ? params_color : main_bgcolor);            
+
+            log("in status_box");
+            sub;
+        =]
+
+        dynamic component target_panel(target t) [=
+            component_class = "target_panel"
+            id = t.name + "_panel"
+
+            target_state(t);        
+            target_selector(t);
+            target_exec(t);
+        =]
+        
+        dynamic component target_state(target t),(params{}) [=
+            component_class = "target_state"
+            name = "target_state"
+            target_name = params ? params{"target"} : t.name
+            id = target_name + "_state" 
+
+            dynamic status_box(*) target_status(),(params{}) [=
+                log("in target_status");
+            =]
+
+            log("about to do target_status");
+            target_status(params);
+            log("did target_status");
+        =]
+    
+        dynamic component target_selector(target t) [=
+            id = t.name + "_selector"
+            target_name = t.name
+            exec_id = t.name + "_exec" 
+        
+            request_button(target_name, target_name, exec_id, target_exec, target_param, target_name);
+        =]
+
+        dynamic component target_exec(target t),(params{}) [=
+            component_class = "target_exec"
+            name = "target_exec"
+            target_name = params ? params{"target"} : t.name
+            id = target_name + "_exec"
+            
+            dynamic status_box(*) exec_status(params{}) [/]
+            
+            exec_status(params);
+        =]
+    
+    target_panel(ls);
+    
+=]
+
+target ls [=
+    this task = ls_cmd_task
+=]
+
+command_task ls_cmd_task [=
+   command = "ls -l"
+=]
 
 
     size_bar_script [|
@@ -427,8 +537,7 @@ site bake [=
             e.preventDefault();
             e.stopPropagation();
             return false;
-        }        
-       
+        }
         </script>
     |]
 
@@ -475,16 +584,17 @@ site bake [=
     /** exec wrapper that sends output to console **/
     
     dynamic console_exec(cmd) [=
-        dynamic exec_out = exec.out
+        exec this_exec = exec(cmd)
+        dynamic out = this_exec.out
 
         log("console_exec(" + cmd + ");");
         console_print(prompt + cmd);
-        exec(cmd);
+        this_exec;
         
-        for until !exec.is_running [=
-            console_print(exec_out);
+        for until !this_exec.is_running [=
+            console_print(out);
         =]
-        console_print(exec_out);
+        console_print(out);
     =] 
     
     
