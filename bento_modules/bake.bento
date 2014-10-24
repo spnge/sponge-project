@@ -148,7 +148,7 @@ site bake [=
 
     console_init_script [|
         // long poll
-        pollComponent("bake_console", 5000, function() {
+        pollComponent("bake_console", [= console_poll_length; =], function() {
                var console_textarea = document.getElementById("console_textarea");
                if (console_textarea !== undefined) {
                     console_textarea.scrollTop = console_textarea.scrollHeight;
@@ -162,13 +162,14 @@ site bake [=
     
     /---- site variables ----/
 
+    int console_poll_length = 2000;
     
     float left_panel_width(float ems) = ems
 
     color main_bgcolor = "#d7f1e7"
 
     session_init [=
-        left_panel_width(22);
+        left_panel_width(19);
         console_print("bake version " + bake_version);
         console_print("$ ");
     =]
@@ -189,6 +190,11 @@ site bake [=
                 margin: 0 0 0 0;
                 background: [= main_bgcolor; =];
             }
+            
+            h2 {
+                margin-left: 1em;
+            }
+            
             div {
                 background: [= main_bgcolor; =];
             }
@@ -226,45 +232,51 @@ site bake [=
                 border-color: white;  
             }
             
-            .table_panel {
-                display: table;
+            .dependency_panel {
+                margin-left: 2em;
+                width: 12em;
+            }
+            
+            .dependency_state {
+                width: 1.25em;
             }
 
-            .body_panel {
-                display: table-row-group;
-            }
-           
             .target_panel {
-                display: table-row;
-                width: 14em;
+                position: relative;
+                width: 100%;
+                margin: 0;
+                padding:0.25em 0 0.25em 0;
+                border: 0.0675em outset white;
             }
             
             .target_state {
-                display: table-cell;
+                position: absolute;
+                left: 0;
+                top: 0;
                 width: 1.5em;
             }
 
             .target_selector {
-                display: table-cell;
-                width: 10em;
-                min-width: 10em;
+                margin: 0 2em 0 2em;
             }
             
             .target_exec {
-                display: table-cell;
+                position: absolute;
+                right: 0;
+                top: 0;
                 width: 1.5em;
             }
 
             .status_box {
-                height: 1em;
-                width: 1em;
-                min-height: 1em;
-                min-width: 1em;
+                height: 0.5em;
+                width: 0.5em;
+                min-height: 0.5em;
+                min-width: 0.5em;
                 border-width: 0.125em;
                 border-style: inset;
                 border-color: white;  
-                margin: 0.25em;
-                padding: 0.125em;
+                margin: 0.5em 0.25em 0.5em 0.25em;
+                padding: 0;
             }
             
             .status_default {
@@ -289,16 +301,16 @@ site bake [=
 
             #left_panel {
                 position: absolute;
-                padding: 1em;
+                padding: 0;
                 left: 0;
                 top: 0;
-                width: [= (left_panel_width - 2); =]em;
+                width: [= left_panel_width; =]em;
             }
             
             #size_bar {
                 cursor: pointer;
                 position: absolute;
-                left: [= (left_panel_width + 2); =]em;
+                left: [= left_panel_width; =]em;
                 top: 0;
                 bottom: 0;
                 z-index: 1001;
@@ -308,7 +320,7 @@ site bake [=
                 background: #dddddd;
                 margin: 0;
                 position: absolute;
-                left: [= (left_panel_width + 2.5); =]em;
+                left: [= (left_panel_width + 0.5); =]em;
                 top: 0;
                 right: 0.5em;
                 bottom: 0.5em;
@@ -348,11 +360,10 @@ site bake [=
             component_class = "vertical_bar"
         =]
         
-        dynamic component status_box(params{}) [=
+        dynamic component status_box(),(params{}) [=
             component_class = "status_box"
             color bg_color = (params{"color"} ? params_color : main_bgcolor);            
 
-            log("in status_box");
             sub;
         =]
 
@@ -360,9 +371,24 @@ site bake [=
             component_class = "target_panel"
             id = t.name + "_panel"
 
-            target_state(t);        
             target_selector(t);
+            target_state(t);
             target_exec(t);
+            if (t.depends_on) [=
+                for target d in t.depends_on [=
+                    dependency_panel(t, d);
+                =]
+            =]
+            [| </td></tr></table> |]
+        =]
+        
+        dynamic component dependency_panel(target indep, target dep) [=
+            component_class = "dependency_panel"
+            id = dep.name + "_on_" + indep.name + "_panel"
+
+            dependency_label(dep);
+            dependency_state(indep, dep);        
+            dependency_exec(dep);
         =]
         
         dynamic component target_state(target t),(params{}) [=
@@ -371,14 +397,17 @@ site bake [=
             target_name = params ? params{"target"} : t.name
             id = target_name + "_state" 
 
-            dynamic status_box(*) target_status(params{}) [/]
+            dynamic status_box(*) target_status(),(params{}) [/]
 
-            log("about to do target_status");
-            target_status(params);
-            log("did target_status");
+            with (params) [=
+                target_status(params);
+            =] else [=
+                target_status;
+            =]
         =]
     
         dynamic component target_selector(target t) [=
+            component_class = "target_selector"
             id = t.name + "_selector"
             target_name = t.name
             exec_id = t.name + "_exec" 
@@ -391,10 +420,35 @@ site bake [=
             name = "target_exec"
             target_name = params ? params{"target"} : t.name
             id = target_name + "_exec"
+            target this_target = (t ? t : target_by_name{target_name});
             
-            dynamic status_box(*) exec_status(params{}) [/]
+            dynamic status_box(*) exec_status(),(params{}) [/]
             
-            exec_status(params);
+            with (params) [=
+                if (this_target.execute) [|
+                    Succeeded.
+                |] else [|
+                    FAILED.
+                |] =]
+                <br/>
+            |] else [|
+                Ready.
+                <br/>
+            |]
+                exec_status(params);
+            =] else [=
+                exec_status;
+            =]
+        =]
+
+        dynamic component dependency_label(target dep) [=
+            dep.name;
+        =]
+
+        dynamic component dependency_state(target indep, target dep) [=
+        =]
+
+        dynamic component dependency_exec(target dep) [=
         =]
 
         /------- top-level wrapper around everything -------/
@@ -410,9 +464,6 @@ site bake [=
         
         for target t in all_targets [=
             target_panel(t);
-            for target d in t.depends_on [=
-                target_panel(d);
-            =]
         =]
         [| </div> |]
         
@@ -428,65 +479,6 @@ site bake [=
         util_script;        
     =]
 
-/---- TEST ----/
-
-t1 [=
-        target_param = "target"
-
-        dynamic component status_box(),(params{}) [=
-            component_class = "status_box"
-            color bg_color = (params{"color"} ? params_color : main_bgcolor);            
-
-            log("in status_box");
-            sub;
-        =]
-
-        dynamic component target_panel(target t) [=
-            component_class = "target_panel"
-            id = t.name + "_panel"
-
-            target_state(t);        
-            target_selector(t);
-            target_exec(t);
-        =]
-        
-        dynamic component target_state(target t),(params{}) [=
-            component_class = "target_state"
-            name = "target_state"
-            target_name = params ? params{"target"} : t.name
-            id = target_name + "_state" 
-
-            dynamic status_box(*) target_status(),(params{}) [=
-                log("in target_status");
-            =]
-
-            log("about to do target_status");
-            target_status(params);
-            log("did target_status");
-        =]
-    
-        dynamic component target_selector(target t) [=
-            id = t.name + "_selector"
-            target_name = t.name
-            exec_id = t.name + "_exec" 
-        
-            request_button(target_name, target_name, exec_id, target_exec, target_param, target_name);
-        =]
-
-        dynamic component target_exec(target t),(params{}) [=
-            component_class = "target_exec"
-            name = "target_exec"
-            target_name = params ? params{"target"} : t.name
-            id = target_name + "_exec"
-            
-            dynamic status_box(*) exec_status(params{}) [/]
-            
-            exec_status(params);
-        =]
-    
-    target_panel(ls);
-    
-=]
 
 target ls [=
     this task = ls_cmd_task
