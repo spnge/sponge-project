@@ -9,7 +9,7 @@ bakery `sponge-project` [=
 
     adopt bake
 
-    bakepage index [=
+    public bakepage index [=
         boolean ajax_enabled = true
         
         /** top-level targets (ones available to the user) **/

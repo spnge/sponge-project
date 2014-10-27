@@ -8,19 +8,34 @@
 site bake [=
 
     /------------------------------------------/
-    /-------------- version info --------------/
+    /-------------- version info  -------------/
     /------------------------------------------/
 
-    bake_version = "0.1"
+    public bake_version = "0.1"
 
 
     /------------------------------------------/
-    /-------------- base classes --------------/
+    /--------------   constants   -------------/
+    /------------------------------------------/
+
+    /** status values **/
+
+    status [?]    
+    status READY = "ready"
+    status EXECUTING = "executing"
+    status DONE = "done"
+    status BLOCKED = "blocked"
+    status SUCCEEDED = "succeeded"
+    status FAILED = "failed" 
+
+
+    /------------------------------------------/
+    /-------------- base classes  -------------/
     /------------------------------------------/
 
     /** base class for tasks **/
     
-    dynamic task [=
+    public dynamic task [=
         name = owner.type;
         keep: boolean succeeded(boolean flag) = flag
         
@@ -35,7 +50,7 @@ site bake [=
 
     /** base class for targets **/
 
-    target [=
+    public target [=
         name = owner.type
         keep: target[] depends_on = []
         keep: this task [?]
@@ -50,12 +65,13 @@ site bake [=
          -- succeed then execute the task.
          --/
 
-        dynamic boolean execute [=
+        dynamic execute [=
             boolean everything_ok(boolean flag) = flag
+            target_name = owner.name
     
             eval(everything_ok(: true :));
             
-            console_print("Checking dependencies for target " + name);
+            console_print("Checking dependencies for target " + target_name);
     
             for target t in depends_on until !everything_ok [=
                 if (!t.executed) [=
@@ -66,22 +82,25 @@ site bake [=
             =]
     
             if (everything_ok) [=
-                console_print("Dependencies for target " + name  + " satisfied; executing task " + task.name);
+                console_print("Dependencies for target " + target_name  + " satisfied; executing task " + task.name);
                 task;
                 eval(executed(true));
                 status(: task.succeeded :);
+                
+                set_completion_status(target_name, DONE);
+                set_success_status(target_name, task.succeeded ? SUCCEEDED : FAILED);
             =] else [=
                 console_print("Unable to satisfy dependencies for target " + name);
-                false;
+                set_completion_status(target_name, BLOCKED);
             =]
         =]
     =]
     
     /------------------------------------------/
-    /--------------   modules    --------------/
+    /--------------    modules    -------------/
     /------------------------------------------/
 
-    module [=
+    public module [=
         name = owner.type
         path = "./" + name
         origin [?]
@@ -90,44 +109,92 @@ site bake [=
         
 
     /------------------------------------------/
-    /--------------   console    --------------/
+    /-------------- session state -------------/
+    /------------------------------------------/
+
+    /** completion status of targets, can be READY, EXECUTING or DONE. Stored by 
+     *  target name.
+     **/
+    status{} completion_status = {}
+    
+    /** set the completion status of a target **/
+    dynamic set_completion_status(target t, status s),(tname, status s) [=
+        target_name = tname ? tname : t.name
+
+        keep by target_name in completion_status:
+        dynamic status save_status = s
+        
+        eval(save_status);
+    =]
+    
+    /** set the completion status of all targets back to READY. **/
+    dynamic clear_all_completion [=
+        keep by tname in completion_status:
+        status clear_completion = READY
+
+        for tname in target_status.keys [=
+            eval(clear_status);
+        =]
+    =]
+    
+
+    /** sussess status of targets, can be READY, EXECUTING, SUCCEEDED or 
+     *  FAILED. Stored by target name.
+     **/
+    status{} success_status = {}
+    
+    /** set the success status of a target **/
+    dynamic set_success_status(target t, status s),(tname, status s) [=
+        target_name = tname ? tname : t.name
+    
+        keep by target_name in success_status:
+        dynamic status save_status = s
+        
+        eval(save_status);
+    =]  
+
+    /------------------------------------------/
+    /--------------    console    -------------/
     /------------------------------------------/
 
     /** the current console input prompt **/
     
     prompt(p) = p
     
-    static DEFAULT_PROMPT = "> "
+    static DEFAULT_PROMPT = "$ "
 
     /** the current console buffer. When a target is executed, its output (both normal
      *  and error) is appended to this buffer.
      **/
 
     console_out(contents) = contents
+    dynamic set_console_out(str) [= 
+        eval(console_out(: str :));
+        eval(console_changed(: true :));
+        log(console_changed ? "> console changed" : "V console NOT changed");
+    =]
     
     boolean console_changed(boolean changed) = changed
     
-    dynamic console_print(str) [=
+    public dynamic console_print(str) [=
         if (str) [=
             new_out = console_out + str
-            console_out(: new_out + '\r' :);
+            set_console_out(new_out + '\r');
             log(">> " + str);
-            eval(console_changed(: true :));
         =]
     =]
     
-    dynamic console_clear [=
+    public dynamic console_clear [=
         if (console_out) [=
-            console_out("");
-            eval(console_changed(: true :));
+            set_console_out("");
         =]
     =]
-    
-    dynamic component console(request r) [=
+
+    public dynamic component console(request r) [=
         component_class = "console"
         
         dynamic display_contents [=
-            log(console_changed ? "console has changed" : "console has not changed");
+            log(console_changed ? "^ console has changed" : "^ console has not changed");
             eval(console_changed(: false :));
             [| <textarea wrap="off" id="console_textarea"> |]
             console_out;
@@ -135,12 +202,13 @@ site bake [=
         =]
 
         with (r) [=
-            log("console called with request");
+            log("@ console called with request");
             for until console_changed [=
-                sleep(10000);
+               log("@ console has not changed");
+               sleep(console_server_sleep);
             =]
         =] else [=
-            log("console called without request");
+            log("@ console called without request");
         =]
         
         display_contents;
@@ -157,16 +225,17 @@ site bake [=
     |]
     
     /------------------------------------------/
-    /--------------      UI      --------------/
+    /--------------      UI       -------------/
     /------------------------------------------/
-    
+
     /---- site variables ----/
 
-    int console_poll_length = 2000;
+    int console_poll_length = 1000;
+    int console_server_sleep = 2000;
     
     float left_panel_width(float ems) = ems
 
-    color main_bgcolor = "#d7f1e7"
+    public color main_bgcolor = "#d5f1e5"
 
     session_init [=
         left_panel_width(19);
@@ -174,12 +243,14 @@ site bake [=
         console_print("$ ");
     =]
 
+    dynamic class_for_status(status s) = "status_" + status
+    
 
     /** base class of web page to display list of targets and instantiate selected targets. Bake
      *  projects should subclass this definition and add an implementation for top-level targets.
      **/
 
-    page bakepage [=
+    public page bakepage [=
         boolean ajax_enabled = true
         title = sitename
         
@@ -279,12 +350,16 @@ site bake [=
                 padding: 0;
             }
             
-            .status_default {
+            .status_ready {
                 background: [= main_bgcolor; =];
             }
             
-            .status_completed {
+            .status_done {
                 background: black;
+            }
+            
+            .status_blocked {
+                background: #666666;
             }
             
             .status_executing: {
@@ -349,7 +424,7 @@ site bake [=
         target[] all_targets = [ for target t in user_targets [= t, for target d in t.depends_on [= d =] =] ] 
     
         /** target look up map **/
-        target{} target_by_name = { for target t in all_targets [= t.name: t =] }
+        target{} target_by_name = { for target tgt in all_targets [= tgt.name: tgt =] }
 
         dynamic console(*) bake_console(request r) [=
             id = "bake_console"
@@ -360,10 +435,8 @@ site bake [=
             component_class = "vertical_bar"
         =]
         
-        dynamic component status_box(),(params{}) [=
-            component_class = "status_box"
-            color bg_color = (params{"color"} ? params_color : main_bgcolor);            
-
+        dynamic component status_box(status s) [=
+            component_class = "status_box status_" + s
             sub;
         =]
 
@@ -391,19 +464,17 @@ site bake [=
             dependency_exec(dep);
         =]
         
-        dynamic component target_state(target t),(params{}) [=
+        public dynamic component target_state(target t),(params{}) [=
             component_class = "target_state"
             name = "target_state"
             target_name = params ? params{"target"} : t.name
             id = target_name + "_state" 
 
-            dynamic status_box(*) target_status(),(params{}) [/]
-
-            with (params) [=
-                target_status(params);
-            =] else [=
-                target_status;
+            if (!completion_status{target_name}) [=
+                set_completion_status(target_name, READY);
             =]
+
+            status_box(completion_status{target_name});
         =]
     
         dynamic component target_selector(target t) [=
@@ -415,30 +486,24 @@ site bake [=
             request_button(target_name, target_name, exec_id, target_exec, target_param, target_name);
         =]
 
-        dynamic component target_exec(target t),(params{}) [=
+        public dynamic component target_exec(target t),(params{}) [=
             component_class = "target_exec"
             name = "target_exec"
-            target_name = params ? params{"target"} : t.name
+            target_name = params ? params{target_param} : t.name
             id = target_name + "_exec"
-            target this_target = (t ? t : target_by_name{target_name});
+            target this_target = (params ? target_by_name{target_name} : t);
             
-            dynamic status_box(*) exec_status(),(params{}) [/]
-            
-            with (params) [=
-                if (this_target.execute) [|
-                    Succeeded.
-                |] else [|
-                    FAILED.
-                |] =]
-                <br/>
-            |] else [|
-                Ready.
-                <br/>
-            |]
-                exec_status(params);
-            =] else [=
-                exec_status;
+            if (params{target_param} && completion_status{target_name} == READY) [=
+                
+                /--- execute in a separate thread ---/
+                this_target.execute;++
+                
+                set_completion_status(this_target, EXECUTING);
+                set_success_status(this_target, EXECUTING);
+            =] else if (!success_status{target_name}) [=
+                set_success_status(this_target, READY);
             =]
+            status_box(success_status{target_name});
         =]
 
         dynamic component dependency_label(target dep) [=
@@ -454,14 +519,12 @@ site bake [=
         /------- top-level wrapper around everything -------/
         [| <div id="main_container"> |]
         
-        [| <div id="left_panel" class="table_panel"> |]
-        
+        [| <div id="left_panel" class="table_panel"> |]     
         
         [| <h2> |]
         title;
         [| </h2> |]
 
-        
         for target t in all_targets [=
             target_panel(t);
         =]
@@ -475,8 +538,10 @@ site bake [=
 
         [| </div> |]
 
+        [| <script> |]
         size_bar_script;
-        util_script;        
+        util_script;
+        [| </script> |]      
     =]
 
 
@@ -490,7 +555,6 @@ command_task ls_cmd_task [=
 
 
     size_bar_script [|
-        <script>
         var main_container;
         var size_bar;
         var left_panel;
@@ -530,12 +594,10 @@ command_task ls_cmd_task [=
             e.stopPropagation();
             return false;
         }
-        </script>
     |]
 
 
-    util_script [|    
-
+    util_script [|
         function addClass(element, classToAdd) {
             var currentClassValue = element.className;
             if (currentClassValue.indexOf(classToAdd) == -1) {
@@ -570,7 +632,7 @@ command_task ls_cmd_task [=
 
     
     /------------------------------------------/
-    /--------------     tasks    --------------/
+    /--------------     tasks     -------------/
     /------------------------------------------/
 
     /** exec wrapper that sends output to console **/
