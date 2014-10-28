@@ -30,87 +30,14 @@ site bake [=
 
 
     /------------------------------------------/
-    /-------------- base classes  -------------/
-    /------------------------------------------/
-
-    /** base class for tasks **/
-    
-    public dynamic task [=
-        name = owner.type;
-        keep: boolean succeeded(boolean flag) = flag
-        
-        console_print("Executing " + name);
-
-        sub;
-        
-        if (!err) [=
-            eval(succeeded(true));
-        =] 
-    =]
-
-    /** base class for targets **/
-
-    public target [=
-        name = owner.type
-        keep: target[] depends_on = []
-        keep: this task [?]
-        
-        /** true if this target has been executed in the current context **/
-        keep: boolean executed(boolean did) = did
-        
-        /** true if this target has been successfully executed in the current context **/
-        keep: boolean status(boolean ok) = ok
-        
-        /-- implementation: handle all the dependencies first, and if they all
-         -- succeed then execute the task.
-         --/
-
-        dynamic execute [=
-            boolean everything_ok(boolean flag) = flag
-            target_name = owner.name
-    
-            eval(everything_ok(: true :));
-            
-            console_print("Checking dependencies for target " + target_name);
-    
-            for target t in depends_on until !everything_ok [=
-                if (!t.executed) [=
-                    eval(everything_ok(: t.execute :));
-                =] else [=
-                    eval(everything_ok(: t.status :));
-                =]
-            =]
-    
-            if (everything_ok) [=
-                console_print("Dependencies for target " + target_name  + " satisfied; executing task " + task.name);
-                task;
-                eval(executed(true));
-                status(: task.succeeded :);
-                
-                set_completion_status(target_name, DONE);
-                set_success_status(target_name, task.succeeded ? SUCCEEDED : FAILED);
-            =] else [=
-                console_print("Unable to satisfy dependencies for target " + name);
-                set_completion_status(target_name, BLOCKED);
-            =]
-        =]
-    =]
-    
-    /------------------------------------------/
-    /--------------    modules    -------------/
-    /------------------------------------------/
-
-    public module [=
-        name = owner.type
-        path = "./" + name
-        origin [?]
-        file module_root = file(path)
-    =]     
-        
-
-    /------------------------------------------/
     /-------------- session state -------------/
     /------------------------------------------/
+
+    session_init [=
+        left_panel_width(19);
+        prompt(DEFAULT_PROMPT);
+        console_print("bake version " + bake_version);
+    =]
 
     /** completion status of targets, can be READY, EXECUTING or DONE. Stored by 
      *  target name.
@@ -198,13 +125,12 @@ site bake [=
             eval(console_changed(: false :));
             [| <textarea wrap="off" id="console_textarea"> |]
             console_out;
+            prompt;
             [| </textarea> |]
         =]
 
         with (r) [=
-            log("@ console called with request");
             for until console_changed [=
-               log("@ console has not changed");
                sleep(console_server_sleep);
             =]
         =] else [=
@@ -230,18 +156,12 @@ site bake [=
 
     /---- site variables ----/
 
-    int console_poll_length = 1000;
-    int console_server_sleep = 2000;
+    int console_poll_length = 3333;
+    int console_server_sleep = 100;
     
     float left_panel_width(float ems) = ems
 
     public color main_bgcolor = "#d5f1e5"
-
-    session_init [=
-        left_panel_width(19);
-        console_print("bake version " + bake_version);
-        console_print("$ ");
-    =]
 
     dynamic class_for_status(status s) = "status_" + status
     
@@ -362,7 +282,7 @@ site bake [=
                 background: #666666;
             }
             
-            .status_executing: {
+            .status_executing {
                 background: yellow;
             }
             
@@ -491,15 +411,27 @@ site bake [=
             name = "target_exec"
             target_name = params ? params{target_param} : t.name
             id = target_name + "_exec"
-            target this_target = (params ? target_by_name{target_name} : t);
+            target this_target = (params ? target_by_name{target_name} : t)
+            
+            execute_target(target t) [=
+                exec_status = t.execute
+            
+                if (exec_status) [|
+                    <span style="color: red;">Error executing [= target_name; =]: [= exec_status; =]</span>
+                |]
+            =]
+
+            if (!target_name) [=
+                redirect unspecified_target_error(here)
+            =]
             
             if (params{target_param} && completion_status{target_name} == READY) [=
                 
                 /--- execute in a separate thread ---/
-                this_target.execute;++
-                
+                execute_target(this_target);++
                 set_completion_status(this_target, EXECUTING);
                 set_success_status(this_target, EXECUTING);
+                
             =] else if (!success_status{target_name}) [=
                 set_success_status(this_target, READY);
             =]
@@ -628,58 +560,26 @@ command_task ls_cmd_task [=
             element.className = filteredList.join(" ");
         }
     |]    
-    
+
 
     
     /------------------------------------------/
-    /--------------     tasks     -------------/
+    /--------------  error pages  -------------/
     /------------------------------------------/
 
-    /** exec wrapper that sends output to console **/
-    
-    dynamic console_exec(cmd) [=
-        exec this_exec = exec(cmd)
-        dynamic out = this_exec.out
-
-        log("console_exec(" + cmd + ");");
-        console_print(prompt + cmd);
-        this_exec;
+    page error_page(msg, ctx) [=
+        [| <h2>Error: /]            
+        msg;
+        [| </h2> |]
         
-        for until !this_exec.is_running [=
-            console_print(out);
+        with (ctx) [=
+            ctx;
         =]
-        console_print(out);
-    =] 
-    
-    
-    /** a task that involves executing a system command **/ 
-    task command_task [=
-        command [?]
-        commands[] = []
-        
-        if (command) [=
-            console_exec(command);
-        =] else [=
-            for cmd in commands [=
-                console_exec(cmd);
-            =]
-        =]
-   
-    =]
+    =]   
 
-    task setup_module_task(module m) [=
-        clone_command = "git clone " + m.origin
+    error_page("Unspecified target.", ctx) unspecified_target_error(ctx) [/]
 
-        console_print("Looking for directory " + m.module_root.name + "...");
-        if (!m.module_root.exists) [=
-            console_print("Cloning " + m.name + " repository...");
-            console_exec(clone_command);
-        =] else [=
-            console_print("Directory exists, assuming repository exists too");
-        =]
-        
-        sub;    
-    =]
+    error_page("Unknown target " + target_name, ctx) unknown_target_error(target_name, ctx) [/]
 
 =]
 

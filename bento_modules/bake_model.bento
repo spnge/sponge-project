@@ -1,0 +1,138 @@
+/**  bake_model.bento
+ *
+ *   Object model for bake project automation
+ *
+ **/
+
+site bake [=
+
+    /------------------------------------------/
+    /-------------- base classes  -------------/
+    /------------------------------------------/
+
+    /** base class for tasks **/
+    
+    public dynamic task [=
+        name = owner.type;
+        keep: boolean succeeded(boolean flag) = flag
+        
+        console_print("Executing " + name);
+
+        sub;
+        
+        if (!err) [=
+            eval(succeeded(true));
+        =] 
+    =]
+
+    /** base class for targets **/
+
+    public target [=
+        name = owner.type
+        keep: target[] depends_on = []
+        keep: this task [?]
+        
+        /** true if this target has been executed in the current context **/
+        keep: boolean executed(boolean did) = did
+        
+        /** true if this target has been successfully executed in the current context **/
+        keep: boolean status(boolean ok) = ok
+        
+        /-- implementation: handle all the dependencies first, and if they all
+         -- succeed then execute the task.
+         --/
+
+        dynamic execute [=
+            boolean everything_ok(boolean flag) = flag
+            target_name = owner.name
+    
+            eval(everything_ok(: true :));
+            
+            console_print("Checking dependencies for target " + target_name);
+    
+            for target t in depends_on until !everything_ok [=
+                if (!t.executed) [=
+                    eval(everything_ok(: t.execute :));
+                =] else [=
+                    eval(everything_ok(: t.status :));
+                =]
+            =]
+    
+            if (everything_ok) [=
+                console_print("Dependencies for target " + target_name  + " satisfied; executing task " + task.name);
+                task;
+                eval(executed(true));
+                status(: task.succeeded :);
+                
+                set_completion_status(target_name, DONE);
+                set_success_status(target_name, task.succeeded ? SUCCEEDED : FAILED);
+            =] else [=
+                console_print("Unable to satisfy dependencies for target " + name);
+                set_completion_status(target_name, BLOCKED);
+            =]
+        =]
+    =]
+    
+    /------------------------------------------/
+    /--------------    modules    -------------/
+    /------------------------------------------/
+
+    public module [=
+        name = owner.type
+        path = "./" + name
+        origin [?]
+        file module_root = file(path)
+    =]     
+        
+    /------------------------------------------/
+    /-------------  generic tasks  ------------/
+    /------------------------------------------/
+
+    /** exec wrapper that sends output to console **/
+    
+    dynamic console_exec(cmd) [=
+        exec this_exec = exec(cmd)
+        dynamic out = this_exec.out
+
+        log("console_exec(" + cmd + ");");
+        console_print(prompt + cmd);
+        this_exec;
+        
+        for until !this_exec.is_running [=
+            console_print(out);
+        =]
+        console_print(out);
+    =] 
+    
+    
+    /** a task that involves executing a system command **/ 
+    task command_task [=
+        command [?]
+        commands[] = []
+        
+        if (command) [=
+            console_exec(command);
+        =] else [=
+            for cmd in commands [=
+                console_exec(cmd);
+            =]
+        =]
+   
+    =]
+
+    task setup_module_task(module m) [=
+        clone_command = "git clone " + m.origin
+
+        console_print("Looking for directory " + m.module_root.name + "...");
+        if (!m.module_root.exists) [=
+            console_print("Cloning " + m.name + " repository...");
+            console_exec(clone_command);
+        =] else [=
+            console_print("Directory exists, assuming repository exists too");
+        =]
+        sub;    
+    =]
+
+=]
+
+
