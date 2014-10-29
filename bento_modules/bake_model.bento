@@ -42,9 +42,10 @@ site bake [=
          -- succeed then execute the task.
          --/
 
+        target_name = name
+        
         dynamic execute [=
             boolean everything_ok(boolean flag) = flag
-            target_name = owner.name
     
             eval(everything_ok(: true :));
             

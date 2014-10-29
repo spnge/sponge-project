@@ -416,6 +416,7 @@ site bake [=
             execute_target(target t) [=
                 exec_status = t.execute
             
+                log("   ------ execute_target " + t.name);
                 if (exec_status) [|
                     <span style="color: red;">Error executing [= target_name; =]: [= exec_status; =]</span>
                 |]
@@ -426,6 +427,9 @@ site bake [=
             =]
             
             if (params{target_param} && completion_status{target_name} == READY) [=
+
+                log("  ^^^^^^ execute_target " + this_target.name);
+
                 
                 /--- execute in a separate thread ---/
                 execute_target(this_target);++
