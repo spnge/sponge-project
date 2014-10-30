@@ -372,7 +372,6 @@ site bake [=
                     dependency_panel(t, d);
                 =]
             =]
-            [| </td></tr></table> |]
         =]
         
         dynamic component dependency_panel(target indep, target dep) [=
@@ -411,7 +410,7 @@ site bake [=
             name = "target_exec"
             target_name = params ? params{target_param} : t.name
             id = target_name + "_exec"
-            target this_target = (params ? target_by_name{target_name} : t)
+            target this_target = target_by_name{target_name}
             
             execute_target(target t) [=
                 exec_status = t.execute
@@ -482,7 +481,7 @@ site bake [=
 
 
 target ls [=
-    this task = ls_cmd_task
+    task target_task = ls_cmd_task
 =]
 
 command_task ls_cmd_task [=

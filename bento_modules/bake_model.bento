@@ -30,7 +30,9 @@ site bake [=
     public target [=
         name = owner.type
         keep: target[] depends_on = []
-        keep: this task [?]
+        keep: task target_task [?]
+        
+        dynamic do_task = target_task(: :)
         
         /** true if this target has been executed in the current context **/
         keep: boolean executed(boolean did) = did
@@ -60,13 +62,13 @@ site bake [=
             =]
     
             if (everything_ok) [=
-                console_print("Dependencies for target " + target_name  + " satisfied; executing task " + task.name);
-                task;
+                console_print("Dependencies for target " + target_name  + " satisfied; executing task " + target_task.name);
+                do_task;
                 eval(executed(true));
-                status(: task.succeeded :);
+                status(: target_task.succeeded :);
                 
                 set_completion_status(target_name, DONE);
-                set_success_status(target_name, task.succeeded ? SUCCEEDED : FAILED);
+                set_success_status(target_name, target_task.succeeded ? SUCCEEDED : FAILED);
             =] else [=
                 console_print("Unable to satisfy dependencies for target " + name);
                 set_completion_status(target_name, BLOCKED);

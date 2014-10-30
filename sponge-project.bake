@@ -24,27 +24,27 @@ bakery `sponge-project` [=
                                 setup_analyzer,
                                 setup_web ]
             
-        this task = setup_task
+        task target_task = setup_task
     =]
 
     target setup_db [=
-        this task = setup_db_task
+        task target_task = setup_db_task
     =]
 
     target setup_proxyb [=
-        this task = setup_proxyb_task
+        task target_task = setup_proxyb_task
     =]
 
     target setup_scraper [=
-        this task = setup_scraper_task
+        task target_task = setup_scraper_task
     =]
 
     target setup_analyzer [=
-        this task = setup_analyzer_task
+        task target_task = setup_analyzer_task
     =]
 
     target setup_web [=
-        this task = setup_web_task
+        task target_task = setup_web_task
     =]
 
 =]
