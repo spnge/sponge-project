@@ -45,8 +45,8 @@ site bake [=
     status{} completion_status = {}
     
     /** set the completion status of a target **/
-    dynamic set_completion_status(target t, status s),(tname, status s) [=
-        target_name = tname ? tname : t.name
+    dynamic set_completion_status(tname, status s) [=
+        target_name = tname
 
         keep by target_name in completion_status:
         dynamic status save_status = s
@@ -71,8 +71,8 @@ site bake [=
     status{} success_status = {}
     
     /** set the success status of a target **/
-    dynamic set_success_status(target t, status s),(tname, status s) [=
-        target_name = tname ? tname : t.name
+    dynamic set_success_status(tname, status s) [=
+        target_name = tname
     
         keep by target_name in success_status:
         dynamic status save_status = s
@@ -427,16 +427,16 @@ site bake [=
             
             if (params{target_param} && completion_status{target_name} == READY) [=
 
-                log("  ^^^^^^ execute_target " + this_target.name);
+                log("  ^^^^^^ execute_target " + target_name);
 
                 
                 /--- execute in a separate thread ---/
-                execute_target(this_target);++
-                set_completion_status(this_target, EXECUTING);
-                set_success_status(this_target, EXECUTING);
+                execute_target(this_target);     // ++
+                set_completion_status(target_name, EXECUTING);
+                set_success_status(target_name, EXECUTING);
                 
             =] else if (!success_status{target_name}) [=
-                set_success_status(this_target, READY);
+                set_success_status(target_name, READY);
             =]
             status_box(success_status{target_name});
         =]
