@@ -6,9 +6,10 @@
 
 site bake [=
 
-    /------------------------------------------/
-    /-------------- base classes  -------------/
-    /------------------------------------------/
+
+    /----------------------------------------------/
+    /--------------   base classes    -------------/
+    /----------------------------------------------/
 
     /** base class for tasks **/
     
@@ -29,8 +30,8 @@ site bake [=
 
     public target [=
         name = owner.type
-        keep: target[] depends_on = []
-        keep: task target_task [?]
+        target[] depends_on = []
+        task target_task [?]
         
         dynamic do_task = target_task(: :)
         
@@ -55,17 +56,18 @@ site bake [=
     
             for target t in depends_on until !everything_ok [=
                 if (!t.executed) [=
-                    eval(everything_ok(: t.execute :));
+                    t.execute;
                 =] else [=
-                    eval(everything_ok(: t.status :));
+                    console_print(t.name + " already executed.");
                 =]
+                eval(everything_ok(: t.status :));
             =]
     
             if (everything_ok) [=
-                console_print("Dependencies for target " + target_name  + " satisfied; executing task " + target_task.name);
+                console_print("Dependencies for target " + target_name  + " satisfied");
                 do_task;
                 eval(executed(true));
-                status(: target_task.succeeded :);
+                eval(status(: target_task.succeeded :));
                 
                 set_completion_status(target_name, DONE);
                 set_success_status(target_name, target_task.succeeded ? SUCCEEDED : FAILED);
@@ -76,9 +78,17 @@ site bake [=
         =]
     =]
     
-    /------------------------------------------/
-    /--------------    modules    -------------/
-    /------------------------------------------/
+    /** base class for target groups **/
+    
+    target_group [=
+        name = owner.type
+        group_name = name
+        target[] targets = []
+    =]
+    
+    /----------------------------------------------/
+    /---------------     modules     --------------/
+    /----------------------------------------------/
 
     public module [=
         name = owner.type
@@ -87,9 +97,9 @@ site bake [=
         file module_root = file(path)
     =]     
         
-    /------------------------------------------/
-    /-------------  generic tasks  ------------/
-    /------------------------------------------/
+    /----------------------------------------------/
+    /--------------   generic tasks   -------------/
+    /----------------------------------------------/
 
     /** exec wrapper that sends output to console **/
     

@@ -13,11 +13,36 @@ bakery `sponge-project` [=
         boolean ajax_enabled = true
         
         /** top-level targets (ones available to the user) **/
-        target[] user_targets = [ setup ]
+        target_group[] all_target_groups = [ setup_group, build_group, test_group, run_group ]
+    =]
+
+    target_group setup_group [=
+        name = "setup"
+        target[] targets = [ setup_all,
+                             setup_analyzer,
+                             setup_db,
+                             setup_proxyb,
+                             setup_scraper,
+                             setup_web ]
+    =]
+    
+    target_group build_group [=
+        name = "build"
+        target[] targets = []
+    =]
+
+    target_group test_group [=
+        name = "test"
+        target[] targets = []
+    =]
+
+    target_group run_group [=
+        name = "run"
+        target[] targets = []
     =]
 
         
-    target setup [=
+    target setup_all [=
         target[] depends_on = [ setup_db,
                                 setup_proxyb,
                                 setup_scraper,

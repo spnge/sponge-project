@@ -98,7 +98,6 @@ site bake [=
     dynamic set_console_out(str) [= 
         eval(console_out(: str :));
         eval(console_changed(: true :));
-        log(console_changed ? "> console changed" : "V console NOT changed");
     =]
     
     boolean console_changed(boolean changed) = changed
@@ -107,7 +106,6 @@ site bake [=
         if (str) [=
             new_out = console_out + str
             set_console_out(new_out + '\r');
-            log(">> " + str);
         =]
     =]
     
@@ -121,7 +119,6 @@ site bake [=
         component_class = "console"
         
         dynamic display_contents [=
-            log(console_changed ? "^ console has changed" : "^ console has not changed");
             eval(console_changed(: false :));
             [| <textarea wrap="off" id="console_textarea"> |]
             console_out;
@@ -133,8 +130,6 @@ site bake [=
             for until console_changed [=
                sleep(console_server_sleep);
             =]
-        =] else [=
-            log("@ console called without request");
         =]
         
         display_contents;
@@ -165,6 +160,15 @@ site bake [=
 
     dynamic class_for_status(status s) = "status_" + status
     
+    /---- expanded/collapsed state of target group panels ----/
+    
+    boolean group_panel_expanded{} = {}
+    
+    dynamic set_group_panel_expanded(group_name, boolean expanded) [=
+        grp_nm = group_name
+        keep by grp_nm in group_panel_expanded: boolean set_expanded = expanded
+        eval(set_expanded);
+    =]
 
     /** base class of web page to display list of targets and instantiate selected targets. Bake
      *  projects should subclass this definition and add an implementation for top-level targets.
@@ -223,6 +227,13 @@ site bake [=
                 border-color: white;  
             }
             
+            .expansion_widget {
+                display: inline;
+                height: 1.25em;
+                width: 1.25em;
+                padding: 0.125em;
+            }
+            
             .dependency_panel {
                 margin-left: 2em;
                 width: 12em;
@@ -275,11 +286,11 @@ site bake [=
             }
             
             .status_done {
-                background: black;
+                background: gray;
             }
             
             .status_blocked {
-                background: #666666;
+                background: red;
             }
             
             .status_executing {
@@ -287,7 +298,7 @@ site bake [=
             }
             
             .status_succeeded {
-                background: green;
+                background: lime;
             }
             
             .status_failed {
@@ -337,15 +348,31 @@ site bake [=
         |] 
         
         target_param = "target"
+        group_param = "group"
+        expansion_param = "expanded"
     
-        /** top-level targets (ones available to the user) **/
-        target[] user_targets = []
+        /** top-level target groups (ones available to the user).  This must
+         *  be overridden by subclasses.
+         **/
+        target_group[] all_target_groups = []
         
-        target[] all_targets = [ for target t in user_targets [= t, for target d in t.depends_on [= d =] =] ] 
+        /** target_group look up map; computed from all_target_groups array. **/
+        target_group{} group_by_name = { for target_group tg in all_target_groups [= tg.group_name: tg =] }
+        
+        /** array of all targets; computed from all_target_groups. **/
+        target[] all_targets = [ for target_group tg in all_target_groups [=
+                                     for target t in tg.targets [=
+                                         t,
+                                         for target d in t.depends_on [=
+                                             d
+                                         =]
+                                     =]
+                                 =] ] 
     
-        /** target look up map **/
+        /** target look up map; computed from all_targets array. **/
         target{} target_by_name = { for target tgt in all_targets [= tgt.name: tgt =] }
 
+        
         dynamic console(*) bake_console(request r) [=
             id = "bake_console"
         =]
@@ -358,6 +385,49 @@ site bake [=
         dynamic component status_box(status s) [=
             component_class = "status_box status_" + s
             sub;
+        =]
+
+        dynamic component expansion_widget(target_group_panel tgp, boolean expanded) [=
+            component_class = "expansion_widget"
+            group_name = tgp.group_name
+            button_value = expanded ? "-" : "+"
+            button_name = "expand"
+            param_value = expanded ? "false" : "true"
+            request_button(button_name, button_value, tgp.id, tgp, expansion_param, button_value);
+        =]
+
+
+        dynamic component target_group_panel(target_group tg),(params{}) [=
+            component_class = "target_group_panel"
+            group_name = params ? params{group_param} : tg.group_name
+            target_group tgt_grp = params ? group_by_name{group_name} : tg
+            
+            id = group_name + "_group_panel"
+            target_panel_container_id = group_name + "_target_panel_container"
+            
+            dynamic boolean expanded = group_panel_expanded{group_name}
+        
+            if (params{expansion_param}) [=
+                log("expand " + id + ": " + params{expansion_param});
+                set_group_panel_expanded(group_name, params{expansion_param} != "false");
+            =]
+            
+            [| <h3> |]
+            expansion_widget(this, expanded);
+            group_name;
+            
+            [| </h3><div id=" |]
+            target_panel_container_id;            
+
+            [| " style="display: |]
+            if (expanded) [| block |]
+            else          [| none  |]
+            [| "> |]
+
+            for target t in tgt_grp.targets [=
+                target_panel(t);
+            =]
+            [| </div> |]
         =]
 
         dynamic component target_panel(target t) [=
@@ -386,7 +456,7 @@ site bake [=
         public dynamic component target_state(target t),(params{}) [=
             component_class = "target_state"
             name = "target_state"
-            target_name = params ? params{"target"} : t.name
+            target_name = params ? params{target_param} : t.name
             id = target_name + "_state" 
 
             if (!completion_status{target_name}) [=
@@ -413,27 +483,20 @@ site bake [=
             target this_target = target_by_name{target_name}
             
             execute_target(target t) [=
-                exec_status = t.execute
-            
                 log("   ------ execute_target " + t.name);
-                if (exec_status) [|
-                    <span style="color: red;">Error executing [= target_name; =]: [= exec_status; =]</span>
-                |]
+                t.execute;
             =]
 
             if (!target_name) [=
                 redirect unspecified_target_error(here)
             =]
             
-            if (params{target_param} && completion_status{target_name} == READY) [=
-
-                log("  ^^^^^^ execute_target " + target_name);
-
-                
-                /--- execute in a separate thread ---/
-                execute_target(this_target);     // ++
+            if (params{target_param} && completion_status{target_name} != EXECUTING) [=
                 set_completion_status(target_name, EXECUTING);
                 set_success_status(target_name, EXECUTING);
+
+                /--- execute in a separate thread ---/
+                execute_target(this_target);++
                 
             =] else if (!success_status{target_name}) [=
                 set_success_status(target_name, READY);
@@ -460,8 +523,9 @@ site bake [=
         title;
         [| </h2> |]
 
-        for target t in all_targets [=
-            target_panel(t);
+        log("there are " + all_target_groups.count + " groups.");
+        for target_group tg in all_target_groups [=
+            target_group_panel(tg);
         =]
         [| </div> |]
         
@@ -478,15 +542,6 @@ site bake [=
         util_script;
         [| </script> |]      
     =]
-
-
-target ls [=
-    task target_task = ls_cmd_task
-=]
-
-command_task ls_cmd_task [=
-   command = "ls -l"
-=]
 
 
     size_bar_script [|
