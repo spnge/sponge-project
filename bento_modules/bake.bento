@@ -393,13 +393,23 @@ site bake [=
             button_value = expanded ? "-" : "+"
             button_name = "expand"
             param_value = expanded ? "false" : "true"
-            request_button(button_name, button_value, tgp.id, tgp, expansion_param, button_value);
+            params{} = { "group": group_name, "expansion": param_value } 
+            
+            query_button(button_name, button_value, tgp.id, tgp, params);
         =]
 
 
         dynamic component target_group_panel(target_group tg),(params{}) [=
             component_class = "target_group_panel"
-            group_name = params ? params{group_param} : tg.group_name
+            group_name [= with (tg) [=
+                              tg.group_name;
+                              log("group_name is tg.group_name: " + tg.group_name);
+                          =] else [= 
+                              params{group_param};
+                              log("group_name is params{group_param}: " + params{group_param});
+                          =]
+                       =]
+                          
             target_group tgt_grp = params ? group_by_name{group_name} : tg
             
             id = group_name + "_group_panel"
