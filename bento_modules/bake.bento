@@ -349,7 +349,7 @@ site bake [=
         
         target_param = "target"
         group_param = "group"
-        expansion_param = "expanded"
+        expansion_param = "expand"
     
         /** top-level target groups (ones available to the user).  This must
          *  be overridden by subclasses.
@@ -393,7 +393,7 @@ site bake [=
             button_value = expanded ? "-" : "+"
             button_name = "expand"
             param_value = expanded ? "false" : "true"
-            params{} = { "group": group_name, "expansion": param_value } 
+            params{} = { "group": group_name, "expand": param_value } 
             
             query_button(button_name, button_value, tgp.id, tgp, params);
         =]
