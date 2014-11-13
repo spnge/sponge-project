@@ -71,12 +71,9 @@ site bake [=
     status{} success_status = {}
     
     /** set the success status of a target **/
-    dynamic set_success_status(tname, status s) [=
-        target_name = tname
-    
+    dynamic set_success_status(target_name, status s) [=
         keep by target_name in success_status:
         dynamic status save_status = s
-        
         eval(save_status);
     =]  
 
@@ -166,7 +163,7 @@ site bake [=
     
     dynamic set_group_panel_expanded(group_name, boolean expanded) [=
         grp_nm = group_name
-        keep by grp_nm in group_panel_expanded: boolean set_expanded = expanded
+        keep by group_name in group_panel_expanded: boolean set_expanded = expanded
         eval(set_expanded);
     =]
 
@@ -229,9 +226,19 @@ site bake [=
             
             .expansion_widget {
                 display: inline;
-                height: 1.25em;
-                width: 1.25em;
-                padding: 0.125em;
+                height: 1em;
+                width: 1em;
+                padding: 0;
+                margin: 0.125em;
+            }
+            
+            .expansion_widget input {
+                background: [= main_bgcolor; =];
+                padding: 0.125em 0.375em;
+                font-size: 0.675em;
+                font-weight: bold;
+                font-family: "Lucida Sans", Verdana, sans-serif;
+                color: #111155;
             }
             
             .dependency_panel {
@@ -347,6 +354,13 @@ site bake [=
             size_bar_init();            
         |] 
         
+        expand_panel_script [|
+            function expand_panel(id, expand) {
+                var panel = document.getElementById(id);
+                panel.style.display = (expand ? "block" : "none");
+            }
+        |]
+        
         target_param = "target"
         group_param = "group"
         expansion_param = "expand"
@@ -393,9 +407,10 @@ site bake [=
             button_value = expanded ? "-" : "+"
             button_name = "expand"
             param_value = expanded ? "false" : "true"
-            params{} = { "group": group_name, "expand": param_value } 
-            
-            query_button(button_name, button_value, tgp.id, tgp, params);
+            qparams{} = { [[ group_param: group_name, expansion_param: param_value ]] } 
+
+            click_function = "expand_panel(" + tgp.target_panel_container_id + "," + param_value + ")"
+            request_button(button_name, button_value, click_function);
         =]
 
 
@@ -466,7 +481,10 @@ site bake [=
         public dynamic component target_state(target t),(params{}) [=
             component_class = "target_state"
             name = "target_state"
-            target_name = params ? params{target_param} : t.name
+            target_name [= 
+                with (t) [= t.name; =]
+                else     [= params{target_param}; =]
+            =]
             id = target_name + "_state" 
 
             if (!completion_status{target_name}) [=
@@ -549,6 +567,7 @@ site bake [=
 
         [| <script> |]
         size_bar_script;
+        expand_panel_script;
         util_script;
         [| </script> |]      
     =]
