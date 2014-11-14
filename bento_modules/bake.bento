@@ -355,9 +355,10 @@ site bake [=
         |] 
         
         expand_panel_script [|
-            function expand_panel(id, expand) {
+            function expand_panel(id, params) {
                 var panel = document.getElementById(id);
                 panel.style.display = (expand ? "block" : "none");
+                postToServer("inform", null, null, params);
             }
         |]
         
@@ -401,6 +402,12 @@ site bake [=
             sub;
         =]
 
+        dynamic inform(params{}) [=
+            log("got to inform");
+        
+        =]
+
+
         dynamic component expansion_widget(target_group_panel tgp, boolean expanded) [=
             component_class = "expansion_widget"
             group_name = tgp.group_name
@@ -409,7 +416,8 @@ site bake [=
             param_value = expanded ? "false" : "true"
             qparams{} = { [[ group_param: group_name, expansion_param: param_value ]] } 
 
-            click_function = "expand_panel(" + tgp.target_panel_container_id + "," + param_value + ")"
+            click_function [| expand_panel("[= tgp.target_panel_container_id; =]", [= qparams; =]) |]
+            log("expansion_widget click function: " + click_function);
             request_button(button_name, button_value, click_function);
         =]
 
