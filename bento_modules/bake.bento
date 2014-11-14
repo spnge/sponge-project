@@ -355,9 +355,16 @@ site bake [=
         |] 
         
         expand_panel_script [|
-            function expand_panel(id, params) {
-                var panel = document.getElementById(id);
-                panel.style.display = (expand ? "block" : "none");
+            function expand_panel(expanderButton, panelId, params) {
+                var panel = document.getElementById(panelId);
+                if (params["expand"] === "true") {
+                    panel.style.display = "block";
+                    expanderButton.value = "-";
+                    expander
+                } else {
+                    panel.style.display = "none";
+                    expanderButton.value = "+";
+                }
                 postToServer("inform", null, null, params);
             }
         |]
@@ -407,18 +414,23 @@ site bake [=
         
         =]
 
+        dynamic click_function(target_group_panel tgp, boolean expanded) [=
+            group_name = tgp.group_name
+            param_value = expanded ? "false" : "true"
+            qparams{} = { [[ group_param: group_name, expansion_param: param_value ]] } 
+            
+            [| expand_panel(this, "[= tgp.target_panel_container_id; =]", [= qparams; =]) |]
+        
+        =]
+
 
         dynamic component expansion_widget(target_group_panel tgp, boolean expanded) [=
             component_class = "expansion_widget"
-            group_name = tgp.group_name
+            id = group_name + "_expander"
             button_value = expanded ? "-" : "+"
             button_name = "expand"
-            param_value = expanded ? "false" : "true"
-            qparams{} = { [[ group_param: group_name, expansion_param: param_value ]] } 
 
-            click_function [| expand_panel("[= tgp.target_panel_container_id; =]", [= qparams; =]) |]
-            log("expansion_widget click function: " + click_function);
-            request_button(button_name, button_value, click_function);
+            request_button(button_name, button_value, click_function(tgp, expanded));
         =]
 
 
