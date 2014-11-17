@@ -9,7 +9,7 @@ bakery `sponge-project` [=
 
     adopt bake
 
-    task setup_task [=
+    task setup_all_task [=
         console_print("setup_task completed");
     =]
 

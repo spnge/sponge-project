@@ -1,0 +1,38 @@
+/**  run.bake
+ *
+ *   Run sponge-project components 
+ *
+ *
+ **/
+
+bakery `sponge-project` [=
+
+    adopt bake
+
+    task run_all_task [=
+        console_print("run_all_task completed");
+    =]
+
+    run_node_module_task(`sponge-db`) run_db_task [=
+        console_print("run_db_task completed");
+    =]
+
+    run_node_module_task(`sponge-analyzer`) run_analyzer_task [=
+        console_print("run_analyzer_task completed");
+    =]
+
+    run_node_module_task(`sponge-proxyb`) run_proxyb_task [=
+        console_print("run_proxyb_task completed");
+    =]
+
+    run_node_module_task(`sponge-scraper`) run_scraper_task [=
+        console_print("run_scraper_task completed");
+    =]
+
+    run_bento_module_task(`sponge-web`) run_web_task [=
+        console_print("run_web_task completed");
+    =]
+
+=]
+
+

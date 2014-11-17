@@ -1,0 +1,162 @@
+/**  bake_console.bento
+ *
+ *   Console for bake
+ *
+ **/
+
+site bake [=
+
+    /------------------------------------------/
+    /----------- console constants  -----------/
+    /------------------------------------------/
+
+    int console_poll_length = 3333;
+    int console_server_sleep = 100;
+    
+    static DEFAULT_PROMPT = "$ "
+
+    console_style [|
+        .console textarea {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            color: #55ff33;
+            background: #232323;
+            border: 0.125em solid #77ff77;
+            font-family: "Courier New", Courier, monospace;
+            font-weight: bold;
+            font-size: 0.875em;
+            min-height: 10em;
+            resize: none;
+        }
+    |]
+
+
+    /------------------------------------------/
+    /----------- console public api -----------/
+    /------------------------------------------/
+
+    /** the current console input prompt **/
+    
+    public prompt(p) = p
+    
+    public dynamic console_print(str) [=
+        add_line = str 
+        if (add_line) [=
+            new_out = console_out + add_line
+            set_console_out(new_out + '\n');
+        =]
+    =]
+    
+    public dynamic console_clear [=
+        if (console_out) [=
+            set_console_out("");
+        =]
+    =]
+
+    /** execute a command and send the output to console **/
+
+    public dynamic console_exec(cmd) [=
+        exec this_exec = exec(cmd)
+        dynamic out = this_exec.out
+
+        log("console_exec(" + cmd + ");");
+        console_print(prompt + cmd);
+        this_exec;
+        
+        for until !this_exec.is_running [=
+            console_print(out);
+        =]
+        console_print(out);
+    =] 
+
+
+    /------------------------------------------/
+    /----------- console component  -----------/
+    /------------------------------------------/
+
+    public dynamic component console(request r) [=
+        component_class = "console"
+        
+        dynamic display_contents [=
+            eval(console_changed(: false :));
+            [| <textarea wrap="off" id="console_textarea" onkeypress="if (event.keyCode == 13) consoleEnter(this);"> |]
+            console_out;
+            prompt;
+            [| </textarea> |]
+        =]
+
+        with (r) [=
+            for until console_changed [=
+               sleep(console_server_sleep);
+            =]
+        =]
+        
+        display_contents;
+        
+        [| <script> |]
+        console_script;
+        [| </script> |]
+    =]
+    
+    public dynamic console_update(params{}) [=
+        new_content = params{"content"}
+        boolean overlaps = starts_with(new_content, console_out)
+        int current_length = strlen(console_out)
+        int new_length = strlen(new_content)
+        boolean is_command = starts_with(cmdline, prompt)
+        cmdline = substring(new_content, current_length)
+        command = substring(cmdline, strlen(prompt))
+        
+        log(" -----overlaps: " + overlaps + "  is_command: " + is_command);
+        log(" ---new_content: " + new_content);
+        log(" ---console_out: " + console_out);
+        log(" ---cmdline: " + cmdline);
+        log(" ---command: " + command);
+        
+        if (new_content && overlaps && is_command) [=
+            console_exec(command);
+        =] else [=
+            eval(console_out(new_content));
+        =]
+    =]
+
+    console_script [|
+        function consoleEnter(console_textarea) {
+            informServer("/console_update", consoleEnterDone, "console", "content", console_textarea.value);    
+        }
+        
+        function consoleEnterDone(id) {
+            ;
+        }
+    |]
+
+    /------------------------------------------/
+    /--------- console implementation ---------/
+    /------------------------------------------/
+
+    /** the current console buffer. When a target is executed, its output (both normal
+     *  and error) is appended to this buffer.
+     **/
+
+    console_out(contents) = contents
+    dynamic set_console_out(str) [= 
+        eval(console_out(: str :));
+        eval(console_changed(: true :));
+    =]
+    
+    boolean console_changed(boolean changed) = changed
+    
+    console_init_script(console_name) [|
+        // long poll
+        pollComponent("[= console_name; =]", [= console_poll_length; =], function() {
+               var console_textarea = document.getElementById("console_textarea");
+               if (console_textarea !== undefined) {
+                    console_textarea.scrollTop = console_textarea.scrollHeight;
+                }
+            });
+    |]
+    
+=]
+
+

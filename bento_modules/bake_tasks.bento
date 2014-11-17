@@ -1,0 +1,152 @@
+/**  bake_tasks.bento
+ *
+ *   Generic tasks for bake project automation
+ *
+ **/
+
+site bake [=
+
+
+    /----------------------------------------------/
+    /--------------   generic tasks   -------------/
+    /----------------------------------------------/
+
+   
+    /** a task that involves executing a system command **/ 
+    task command_task [=
+        command [?]
+        commands[] = []
+        
+        if (command) [=
+            console_exec(command);
+        =] else [=
+            for cmd in commands [=
+                console_exec(cmd);
+            =]
+        =]
+   
+    =]
+
+
+    /----------------------------------------------/
+    /--------------    setup tasks    -------------/
+    /----------------------------------------------/
+
+
+    task setup_module_task(module m) [=
+        clone_command = "git clone " + m.origin
+
+        console_print("Looking for directory " + m.module_root.name + "...");
+        if (!m.module_root.exists) [=
+            console_print("Cloning " + m.name + " repository...");
+            console_exec(clone_command);
+        =] else [=
+            console_print("Directory exists, assuming repository exists too");
+        =]
+        sub;    
+    =]
+
+    /----------------------------------------------/
+    /--------------    build tasks    -------------/
+    /----------------------------------------------/
+
+    task build_module_task(module m) [=
+        build_command [?]
+        
+        if (m.module_root.exists) [=
+            console_print("Building " + m.name + " using command:");
+            console_print("    " + build_command);
+            console_exec(build_command);
+        =] else [=
+            console_print(m.name + " home directory not found.");
+        =]
+        
+        sub;
+    =]
+
+    build_module_task(m) build_bento_module_task(module m) [=
+        classpath [| lib/bento.jar:lib/jetty.jar:lib/jetty-util.jar:lib/servlet-api-2.5.jar |]
+        bentopath = m.module_root.name
+            
+        build_command [|
+            java -cp [= classpath; =] bento.runtime.BentoServer -b [= bentopath; =] =]
+        |]
+    =]
+
+    build_module_task(m) build_node_module_task(module m) [=
+        source_path = m.module_root.name + "/" + m.name
+
+        build_command = "node " + source_path
+    =]
+    
+    /----------------------------------------------/
+    /--------------    test tasks     -------------/
+    /----------------------------------------------/
+
+    task test_module_task(module m) [=
+        test_command [?]
+        
+        if (m.module_root.exists) [=
+            console_print("Testing " + m.name + " using command:");
+            console_print("    " + test_command);
+            console_exec(test_command);
+        =] else [=
+            console_print(m.name + " home directory not found.");
+        =]
+        
+        sub;
+    =]
+
+    test_module_task(m) test_bento_module_task(module m) [=
+        classpath [| lib/bento.jar:lib/jetty.jar:lib/jetty-util.jar:lib/servlet-api-2.5.jar |]
+        bentopath = m.module_root.name
+        filebase = m.module_root.name
+            
+        test_command [|
+            java -cp [= classpath; =] bento.runtime.BentoServer -b [= bentopath; =] -d [= filebase; =]
+        |]
+    =]
+
+    test_module_task(m) test_node_module_task(module m) [=
+        source_path = m.module_root.name + "/" + m.name
+
+        test_command = "node " + source_path
+    =]
+    
+    /----------------------------------------------/
+    /--------------     run tasks     -------------/
+    /----------------------------------------------/
+
+    task run_module_task(module m) [=
+        run_command [?]
+        
+        if (m.module_root.exists) [=
+            console_print("Running " + m.name + " using command:");
+            console_print("    " + run_command);
+            console_exec(run_command);
+        =] else [=
+            console_print(m.name + " home directory not found.");
+        =]
+        
+        sub;
+    =]
+
+    run_module_task(m) run_bento_module_task(module m) [=
+        classpath [| lib/bento.jar:lib/jetty.jar:lib/jetty-util.jar:lib/servlet-api-2.5.jar |]
+        bentopath = m.module_root.name
+        filebase = m.module_root.name
+            
+        run_command [|
+            java -cp [= classpath; =] bento.runtime.BentoServer -b [= bentopath; =] -d [= filebase; =]
+        |]
+    =]
+
+    run_module_task(m) run_node_module_task(module m) [=
+        source_path = m.module_root.name + "/" + m.name
+
+        run_command = "node " + source_path
+    =]
+    
+=]
+
+

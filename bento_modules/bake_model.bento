@@ -96,55 +96,6 @@ site bake [=
         origin [?]
         file module_root = file(path)
     =]     
-        
-    /----------------------------------------------/
-    /--------------   generic tasks   -------------/
-    /----------------------------------------------/
-
-    /** exec wrapper that sends output to console **/
-    
-    dynamic console_exec(cmd) [=
-        exec this_exec = exec(cmd)
-        dynamic out = this_exec.out
-
-        log("console_exec(" + cmd + ");");
-        console_print(prompt + cmd);
-        this_exec;
-        
-        for until !this_exec.is_running [=
-            console_print(out);
-        =]
-        console_print(out);
-    =] 
-    
-    
-    /** a task that involves executing a system command **/ 
-    task command_task [=
-        command [?]
-        commands[] = []
-        
-        if (command) [=
-            console_exec(command);
-        =] else [=
-            for cmd in commands [=
-                console_exec(cmd);
-            =]
-        =]
-   
-    =]
-
-    task setup_module_task(module m) [=
-        clone_command = "git clone " + m.origin
-
-        console_print("Looking for directory " + m.module_root.name + "...");
-        if (!m.module_root.exists) [=
-            console_print("Cloning " + m.name + " repository...");
-            console_exec(clone_command);
-        =] else [=
-            console_print("Directory exists, assuming repository exists too");
-        =]
-        sub;    
-    =]
 
 =]
 

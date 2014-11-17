@@ -77,80 +77,13 @@ site bake [=
         eval(save_status);
     =]  
 
-    /------------------------------------------/
-    /--------------    console    -------------/
-    /------------------------------------------/
 
-    /** the current console input prompt **/
-    
-    prompt(p) = p
-    
-    static DEFAULT_PROMPT = "$ "
-
-    /** the current console buffer. When a target is executed, its output (both normal
-     *  and error) is appended to this buffer.
-     **/
-
-    console_out(contents) = contents
-    dynamic set_console_out(str) [= 
-        eval(console_out(: str :));
-        eval(console_changed(: true :));
-    =]
-    
-    boolean console_changed(boolean changed) = changed
-    
-    public dynamic console_print(str) [=
-        if (str) [=
-            new_out = console_out + str
-            set_console_out(new_out + '\r');
-        =]
-    =]
-    
-    public dynamic console_clear [=
-        if (console_out) [=
-            set_console_out("");
-        =]
-    =]
-
-    public dynamic component console(request r) [=
-        component_class = "console"
-        
-        dynamic display_contents [=
-            eval(console_changed(: false :));
-            [| <textarea wrap="off" id="console_textarea"> |]
-            console_out;
-            prompt;
-            [| </textarea> |]
-        =]
-
-        with (r) [=
-            for until console_changed [=
-               sleep(console_server_sleep);
-            =]
-        =]
-        
-        display_contents;
-    =]
-
-    console_init_script [|
-        // long poll
-        pollComponent("bake_console", [= console_poll_length; =], function() {
-               var console_textarea = document.getElementById("console_textarea");
-               if (console_textarea !== undefined) {
-                    console_textarea.scrollTop = console_textarea.scrollHeight;
-                }
-            });
-    |]
-    
     /------------------------------------------/
     /--------------      UI       -------------/
     /------------------------------------------/
 
     /---- site variables ----/
 
-    int console_poll_length = 3333;
-    int console_server_sleep = 100;
-    
     float left_panel_width(float ems) = ems
 
     public color main_bgcolor = "#d5f1e5"
@@ -163,7 +96,7 @@ site bake [=
     
     dynamic set_group_panel_expanded(group_name, boolean expanded) [=
         grp_nm = group_name
-        keep by group_name in group_panel_expanded: boolean set_expanded = expanded
+        keep by grp_nm in group_panel_expanded: boolean set_expanded = expanded
         eval(set_expanded);
     =]
 
@@ -201,20 +134,6 @@ site bake [=
                 padding: 0;
             }
 
-            .console textarea {
-                margin: 0;
-                width: 100%;
-                height: 100%;
-                color: #55ff33;
-                background: #232323;
-                border: 0.125em solid #77ff77;
-                font-family: "Courier New", Courier, monospace;
-                font-weight: bold;
-                font-size: 0.875em;
-                min-height: 10em;
-                resize: none;
-            }
-
             .vertical_bar {
                 height: 100%;
                 width: 0.25em;
@@ -229,15 +148,15 @@ site bake [=
                 height: 1em;
                 width: 1em;
                 padding: 0;
-                margin: 0.125em;
+                margin: 0.125em 0.25em;
             }
             
-            .expansion_widget input {
+            .expansion_widget button {
                 background: [= main_bgcolor; =];
-                padding: 0.125em 0.375em;
+                padding: 0.125em;
                 font-size: 0.675em;
                 font-weight: bold;
-                font-family: "Lucida Sans", Verdana, sans-serif;
+                font-family: "Lucida Console", monospace;
                 color: #111155;
             }
             
@@ -254,7 +173,7 @@ site bake [=
                 position: relative;
                 width: 100%;
                 margin: 0;
-                padding:0.25em 0 0.25em 0;
+                padding:0.25em;
                 border: 0.0675em outset white;
             }
             
@@ -323,7 +242,7 @@ site bake [=
             #size_bar {
                 cursor: pointer;
                 position: absolute;
-                left: [= left_panel_width; =]em;
+                left: [= (left_panel_width + 0.5); =]em;
                 top: 0;
                 bottom: 0;
                 z-index: 1001;
@@ -333,7 +252,7 @@ site bake [=
                 background: #dddddd;
                 margin: 0;
                 position: absolute;
-                left: [= (left_panel_width + 0.5); =]em;
+                left: [= (left_panel_width + 1); =]em;
                 top: 0;
                 right: 0.5em;
                 bottom: 0.5em;
@@ -343,10 +262,12 @@ site bake [=
                 width: 100%;
                 height: 100%;
             }
+
+            [= console_style; =]
         |]
         
         onload_script [=
-            console_init_script;
+            console_init_script("bake_console");
             size_bar_init_script;
         =]
             
@@ -355,18 +276,24 @@ site bake [=
         |] 
         
         expand_panel_script [|
-            function expand_panel(expanderButton, panelId, params) {
+            function expandPanel(expanderButton, group, expand) {
+                var panelId = group + "_target_panel_container"
                 var panel = document.getElementById(panelId);
-                if (params["expand"] === "true") {
+                if (expand === "true") {
                     panel.style.display = "block";
-                    expanderButton.value = "-";
-                    expander
+                    expanderButton.innerHTML = "-";
                 } else {
                     panel.style.display = "none";
-                    expanderButton.value = "+";
+                    expanderButton.innerHTML = "+";
                 }
+                var newExpand = (expand == "true" ? "false" : "true");
+                expanderButton.onclick = function() {
+                    expandPanel(expanderButton, group, newExpand);
+                };
+                var params = { "group": group, "expand": expand } 
                 postToServer("inform", null, null, params);
             }
+
         |]
         
         target_param = "target"
@@ -410,27 +337,25 @@ site bake [=
         =]
 
         dynamic inform(params{}) [=
-            log("got to inform");
-        
-        =]
+            boolean expand = (params{expansion_param} != "false")
+            group_name = params{group_param}
 
-        dynamic click_function(target_group_panel tgp, boolean expanded) [=
-            group_name = tgp.group_name
-            param_value = expanded ? "false" : "true"
-            qparams{} = { [[ group_param: group_name, expansion_param: param_value ]] } 
-            
-            [| expand_panel(this, "[= tgp.target_panel_container_id; =]", [= qparams; =]) |]
-        
+            with (params{expansion_param}) [=
+                log("expand " + group_name + ": " + expand);
+                set_group_panel_expanded(group_name, expand);
+            =]
         =]
-
 
         dynamic component expansion_widget(target_group_panel tgp, boolean expanded) [=
             component_class = "expansion_widget"
-            id = group_name + "_expander"
             button_value = expanded ? "-" : "+"
             button_name = "expand"
 
-            request_button(button_name, button_value, click_function(tgp, expanded));
+            [| <button type="button" name="[= button_name; =]"
+                       onclick="expandPanel(this, '[= tgp.group_name; =]', '[= (!expanded); =]')">
+            |]
+            button_value;
+            [| </button> |]
         =]
 
 
@@ -452,10 +377,6 @@ site bake [=
             
             dynamic boolean expanded = group_panel_expanded{group_name}
         
-            if (params{expansion_param}) [=
-                log("expand " + id + ": " + params{expansion_param});
-                set_group_panel_expanded(group_name, params{expansion_param} != "false");
-            =]
             
             [| <h3> |]
             expansion_widget(this, expanded);
@@ -571,7 +492,6 @@ site bake [=
         title;
         [| </h2> |]
 
-        log("there are " + all_target_groups.count + " groups.");
         for target_group tg in all_target_groups [=
             target_group_panel(tg);
         =]

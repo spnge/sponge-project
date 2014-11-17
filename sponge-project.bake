@@ -16,6 +16,10 @@ bakery `sponge-project` [=
         target_group[] all_target_groups = [ setup_group, build_group, test_group, run_group ]
     =]
 
+    /-------------------------------------------------/
+    /-----------------  setup group  -----------------/
+    /-------------------------------------------------/
+
     target_group setup_group [=
         name = "setup"
         target[] targets = [ setup_all,
@@ -26,22 +30,6 @@ bakery `sponge-project` [=
                              setup_web ]
     =]
     
-    target_group build_group [=
-        name = "build"
-        target[] targets = []
-    =]
-
-    target_group test_group [=
-        name = "test"
-        target[] targets = []
-    =]
-
-    target_group run_group [=
-        name = "run"
-        target[] targets = []
-    =]
-
-        
     target setup_all [=
         target[] depends_on = [ setup_db,
                                 setup_proxyb,
@@ -49,7 +37,7 @@ bakery `sponge-project` [=
                                 setup_analyzer,
                                 setup_web ]
             
-        task target_task = setup_task
+        task target_task = setup_all_task
     =]
 
     target setup_db [=
@@ -71,6 +59,144 @@ bakery `sponge-project` [=
     target setup_web [=
         task target_task = setup_web_task
     =]
+
+
+    /-------------------------------------------------/
+    /-----------------  build group  -----------------/
+    /-------------------------------------------------/
+
+    target_group build_group [=
+        name = "build"
+        target[] targets = [ build_all,
+                             build_analyzer,
+                             build_db,
+                             build_proxyb,
+                             build_scraper,
+                             build_web ]
+    =]
+
+    target build_all [=
+        target[] depends_on = [ build_db,
+                                build_proxyb,
+                                build_scraper,
+                                build_analyzer,
+                                build_web ]
+            
+        task target_task = build_all_task
+    =]
+
+    target build_db [=
+        task target_task = build_db_task
+    =]
+
+    target build_proxyb [=
+        task target_task = build_proxyb_task
+    =]
+
+    target build_scraper [=
+        task target_task = build_scraper_task
+    =]
+
+    target build_analyzer [=
+        task target_task = build_analyzer_task
+    =]
+
+    target build_web [=
+        task target_task = build_web_task
+    =]
+
+
+    /-------------------------------------------------/
+    /-----------------  test group   -----------------/
+    /-------------------------------------------------/
+
+    target_group test_group [=
+        name = "test"
+        target[] targets = [ test_all,
+                             test_analyzer,
+                             test_db,
+                             test_proxyb,
+                             test_scraper,
+                             test_web ]
+    =]
+
+    target test_all [=
+        target[] depends_on = [ test_db,
+                                test_proxyb,
+                                test_scraper,
+                                test_analyzer,
+                                test_web ]
+            
+        task target_task = test_all_task
+    =]
+
+    target test_db [=
+        task target_task = test_db_task
+    =]
+
+    target test_proxyb [=
+        task target_task = test_proxyb_task
+    =]
+
+    target test_scraper [=
+        task target_task = test_scraper_task
+    =]
+
+    target test_analyzer [=
+        task target_task = test_analyzer_task
+    =]
+
+    target test_web [=
+        task target_task = test_web_task
+    =]
+
+
+    /-------------------------------------------------/
+    /-----------------   run group   -----------------/
+    /-------------------------------------------------/
+
+    target_group run_group [=
+        name = "run"
+        target[] targets = [ run_all,
+                             run_analyzer,
+                             run_db,
+                             run_proxyb,
+                             run_scraper,
+                             run_web ]
+    =]
+
+    target run_all [=
+        target[] depends_on = [ run_db,
+                                run_proxyb,
+                                run_scraper,
+                                run_analyzer,
+                                run_web ]
+            
+        task target_task = run_all_task
+    =]
+
+    target run_db [=
+        task target_task = run_db_task
+    =]
+
+    target run_proxyb [=
+        task target_task = run_proxyb_task
+    =]
+
+    target run_scraper [=
+        task target_task = run_scraper_task
+    =]
+
+    target run_analyzer [=
+        task target_task = run_analyzer_task
+    =]
+
+    target run_web [=
+        task target_task = run_web_task
+    =]
+
+
+        
 
 =]
 

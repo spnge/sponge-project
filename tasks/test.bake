@@ -1,0 +1,38 @@
+/**  test.bake
+ *
+ *   Test sponge-project components 
+ *
+ *
+ **/
+
+bakery `sponge-project` [=
+
+    adopt bake
+
+    task test_all_task [=
+        console_print("test_all_task completed");
+    =]
+
+    test_node_module_task(`sponge-db`) test_db_task [=
+        console_print("test_db_task completed");
+    =]
+
+    test_node_module_task(`sponge-analyzer`) test_analyzer_task [=
+        console_print("test_analyzer_task completed");
+    =]
+
+    test_node_module_task(`sponge-proxyb`) test_proxyb_task [=
+        console_print("test_proxyb_task completed");
+    =]
+
+    test_node_module_task(`sponge-scraper`) test_scraper_task [=
+        console_print("test_scraper_task completed");
+    =]
+
+    test_bento_module_task(`sponge-web`) test_web_task [=
+        console_print("test_web_task completed");
+    =]
+
+=]
+
+
