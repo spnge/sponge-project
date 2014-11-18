@@ -41,6 +41,7 @@ site bake [=
     public prompt(p) = p
     
     public dynamic console_print(str) [=
+log("### print " + str + " ###");
         add_line = str 
         if (add_line) [=
             new_out = console_out + add_line
@@ -109,13 +110,12 @@ site bake [=
         cmdline = substring(new_content, current_length)
         command = substring(cmdline, strlen(prompt))
         
-        log(" ---new_content: " + new_content);
-        log(" ---console_out: " + console_out);
         log(" -----overlaps: " + overlaps + "  is_command: " + is_command);
         log("   ---cmdline: " + cmdline);
         log("   ---command: " + command);
         
         if (new_content && overlaps && is_command) [=
+            log("  ----calling console_exec");
             console_exec(command);
         =] else [=
             log("  ----not execing, settin content to " + new_content + "!!!");
