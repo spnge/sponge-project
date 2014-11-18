@@ -82,6 +82,7 @@ site bake [=
             eval(console_changed(: false :));
             [| <textarea wrap="off" id="console_textarea" onkeypress="if (event.keyCode == 13) consoleEnter(this);"> |]
             console_out;
+            log("displaying console_out: -----(" + console_out + ")-----");
             prompt;
             [| </textarea> |]
         =]
@@ -91,7 +92,7 @@ site bake [=
                sleep(console_server_sleep);
             =]
         =]
-        
+        sub;
         display_contents;
         
         [| <script> |]
@@ -108,15 +109,16 @@ site bake [=
         cmdline = substring(new_content, current_length)
         command = substring(cmdline, strlen(prompt))
         
-        log(" -----overlaps: " + overlaps + "  is_command: " + is_command);
         log(" ---new_content: " + new_content);
         log(" ---console_out: " + console_out);
-        log(" ---cmdline: " + cmdline);
-        log(" ---command: " + command);
+        log(" -----overlaps: " + overlaps + "  is_command: " + is_command);
+        log("   ---cmdline: " + cmdline);
+        log("   ---command: " + command);
         
         if (new_content && overlaps && is_command) [=
             console_exec(command);
         =] else [=
+            log("  ----not execing, settin content to " + new_content + "!!!");
             eval(console_out(new_content));
         =]
     =]
