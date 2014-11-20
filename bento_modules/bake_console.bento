@@ -41,10 +41,11 @@ site bake [=
     public prompt(p) = p
     
     public dynamic console_print(str) [=
-log("### print " + str + " ###");
         add_line = str 
+        new_out = console_out + add_line
+        log("### print " + add_line + " ###");
         if (add_line) [=
-            new_out = console_out + add_line
+            log(" +++ calling set_console_out");
             set_console_out(new_out + '\n');
         =]
     =]
@@ -143,6 +144,7 @@ log("### print " + str + " ###");
 
     console_out(contents) = contents
     dynamic set_console_out(str) [= 
+        log(" ;;;;;;;;; new out: " + str + " ;;;;;;;;;");
         eval(console_out(: str :));
         eval(console_changed(: true :));
     =]

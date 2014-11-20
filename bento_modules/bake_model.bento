@@ -51,16 +51,20 @@ site bake [=
             boolean everything_ok(boolean flag) = flag
     
             eval(everything_ok(: true :));
+            eval(status(: true :));
             
             console_print("Checking dependencies for target " + target_name);
     
             for target t in depends_on until !everything_ok [=
                 if (!t.executed) [=
+                    console_print("Executing " + t.name);
                     t.execute;
+                    console_print("  status: " + t.status + "  executed: " + t.executed);
                 =] else [=
-                    console_print(t.name + " already executed.");
+                    console_print(t.name + " already executed; status: " + t.status);
                 =]
                 eval(everything_ok(: t.status :));
+                
             =]
     
             if (everything_ok) [=
@@ -68,6 +72,8 @@ site bake [=
                 do_task;
                 eval(executed(true));
                 eval(status(: target_task.succeeded :));
+                console_print("      status: " + status);
+                
                 
                 set_completion_status(target_name, DONE);
                 set_success_status(target_name, target_task.succeeded ? SUCCEEDED : FAILED);
@@ -75,6 +81,7 @@ site bake [=
                 console_print("Unable to satisfy dependencies for target " + name);
                 set_completion_status(target_name, BLOCKED);
             =]
+            console_print("          status: " + status + "  executed: " + executed);   
         =]
     =]
     

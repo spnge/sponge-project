@@ -467,7 +467,7 @@ site bake [=
                 set_success_status(target_name, EXECUTING);
 
                 /--- execute in a separate thread ---/
-                execute_target(this_target);++
+                execute_target(this_target);    // ++
                 
             =] else if (!success_status{target_name}) [=
                 set_success_status(target_name, READY);
