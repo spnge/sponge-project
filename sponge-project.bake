@@ -9,6 +9,10 @@ bakery `sponge-project` [=
 
     adopt bake
 
+test_it [=
+    setup_all.execute;
+=]
+
     public bakepage index [=
         boolean ajax_enabled = true
         

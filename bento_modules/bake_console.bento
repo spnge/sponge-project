@@ -37,15 +37,45 @@ site bake [=
     /------------------------------------------/
 
     /** the current console input prompt **/
-    
     public prompt(p) = p
+    
+    /** the current console environment **/
+    public console_env{} = {}
+
+    /** the current console directory **/
+    public file console_dir(file directory) = directory
+
+
+    dynamic change_directory(path) [=
+        real_path = starts_with(path, "/") ? path : console_dir.canonical_path + "/" + path
+        file newdir = file(real_path)
+        if (newdir.exists && newdir.is_dir) [=
+            log("changing console directory to " + newdir.canonical_path);
+            eval(console_dir(: file(newdir.canonical_path) :));
+            eval(prompt(: console_dir.canonical_path + DEFAULT_PROMPT :));
+            log(" == prompt: " + prompt);
+        =] else [=
+            if (!newdir.exists) [=
+                log("unable to change console directory to " + real_path + "; does not exist");
+            =] else [=
+                log("unable to change console directory to " + real_path + "; not a directory");
+            =]
+            console_print(path + " does not exist or is not a directory.");
+        =]
+    =]
+    
+    
+    /** initialize the console for the current session **/
+    
+    console_init [=
+        console_dir(file(".")); 
+        prompt(console_dir.canonical_path + DEFAULT_PROMPT);
+    =]
     
     public dynamic console_print(str) [=
         add_line = str 
         new_out = console_out + add_line
-        log("### print " + add_line + " ###");
         if (add_line) [=
-            log(" +++ calling set_console_out");
             set_console_out(new_out + '\n');
         =]
     =]
@@ -55,21 +85,28 @@ site bake [=
             set_console_out("");
         =]
     =]
+    
 
     /** execute a command and send the output to console **/
 
     public dynamic console_exec(cmd) [=
-        exec this_exec = exec(cmd)
+        exec this_exec = exec(cmd, console_env, console_dir)
         dynamic out = this_exec.out
 
         log("console_exec(" + cmd + ");");
         console_print(prompt + cmd);
-        this_exec;
         
-        for until !this_exec.is_running [=
+        if (starts_with(cmd, "cd ")) [=
+            change_directory(trim(substring(cmd, 3)));
+
+        =] else [=
+            this_exec;
+        
+            for until !this_exec.is_running [=
+                console_print(out);
+            =]
             console_print(out);
         =]
-        console_print(out);
     =] 
 
 
@@ -144,7 +181,6 @@ site bake [=
 
     console_out(contents) = contents
     dynamic set_console_out(str) [= 
-        log(" ;;;;;;;;; new out: " + str + " ;;;;;;;;;");
         eval(console_out(: str :));
         eval(console_changed(: true :));
     =]

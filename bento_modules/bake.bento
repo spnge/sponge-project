@@ -35,7 +35,7 @@ site bake [=
 
     session_init [=
         left_panel_width(19);
-        prompt(DEFAULT_PROMPT);
+        console_init();
         console_print("bake version " + bake_version);
     =]
 
