@@ -92,14 +92,19 @@ site bake [=
     public dynamic console_exec(cmd) [=
         exec this_exec = exec(cmd, console_env, console_dir)
         dynamic out = this_exec.out
-
-        log("console_exec(" + cmd + ");");
-        console_print(prompt + cmd);
+        old_prompt(p) = p
         
         if (starts_with(cmd, "cd ")) [=
+            /-- the following logic is to make sure the prompt gets changed before the 
+             -- console is next displayed, since the console display logic automatically
+             -- displays the prompt.
+             --/
+            eval(old_prompt(prompt));
             change_directory(trim(substring(cmd, 3)));
+            console_print(old_prompt + cmd);
 
         =] else [=
+            console_print(prompt + cmd);
             this_exec;
         
             for until !this_exec.is_running [=
