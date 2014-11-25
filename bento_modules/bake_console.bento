@@ -172,7 +172,10 @@ site bake [=
         }
         
         function consoleEnterDone(id) {
-            ;
+            var console_textarea = document.getElementById("console_textarea");
+            if (console_textarea !== undefined) {
+                console_textarea.focus();
+            }
         }
     |]
 
