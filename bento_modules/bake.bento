@@ -169,6 +169,14 @@ site bake [=
                 width: 1.25em;
             }
 
+            .target_group_panel {
+                border: 0.125em outset white;
+            }
+
+            .target_panel_container {
+                border: 0.0675em outset white;
+            }
+
             .target_panel {
                 position: relative;
                 width: 100%;
@@ -384,7 +392,7 @@ site bake [=
             expansion_widget(this, expanded);
             group_name;
             
-            [| </h3><div id=" |]
+            [| </h3><div class="target_panel_container" id=" |]
             target_panel_container_id;            
 
             [| " style="display: |]
