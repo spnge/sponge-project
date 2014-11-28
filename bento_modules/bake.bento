@@ -182,7 +182,8 @@ site bake [=
                 width: 100%;
                 margin: 0;
                 padding:0.25em;
-                border: 0.0675em outset white;
+                border-top: 0.0675em outset red;
+                border-bottom: 0.0675em outset red;
             }
             
             .target_state {
