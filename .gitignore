@@ -1,8 +1,10 @@
 # the following directories have their own separately maintained
 # git repositories
 
-sponge-db/*
 sponge-analyzer/*
+sponge-db/*
+sponge-proxyb/*
 sponge-scraper/*
 sponge-web/*
 
+/bin/
