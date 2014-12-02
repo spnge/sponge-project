@@ -23,6 +23,8 @@ The following describes the three module categories (data, input and output) com
 
 A data module is essentially a database with a web api.  A **sponge** object includes a single data module, but different **sponge** objects can have different data modules.
 
+Conceptually, a data module is a consumer of input streams and a generator of output streams.  The input streams are streams of documents.  If a document has an id field, and a document with that id already exists, the existing document is updated; otherwise, the input document is added to the database.
+
 ### input modules
 
 An input module manages a stream of updates to the data module. 
