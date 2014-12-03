@@ -26,8 +26,8 @@ Getting started
     ```
 3. Go to the `sponge-project` directory and launch the project:
     ```
-    cd sponge-project
-    ./run.sh
+    cd sponge-project                                   
+    ./run.sh                                            
     ```
 4. Open a browser and go to `localhost:7878`.  If all goes well, you will see a control panel with functions for setting up, building, testing and running **sponge**.
 
