@@ -1,41 +1,39 @@
-sponge-project
-==============
+`sponge-project`
+================
 
-sponge-project is the development environment for `sponge`.
+`sponge-project` is the development environment for **sponge**.
 
-`sponge`
---------
+What is **sponge**?
+-------------------
 
-`sponge` is a cloud-based data management service for end users. It provides user-friendly tools for acquiring, storing, using and sharing data sets ranging from small to very large in size.
+**sponge** is a cloud-based data management service for end users. It provides user-friendly tools for acquiring, storing, using and sharing data sets ranging from small to very large in size.
 
-Architecture
-------------
+What is `sponge-project`?
+-------------------------
 
-The architecture of `sponge` is highly modular.  It consists of a data module, input modules and output modules, managed via a web-based control panel.  The input and output modules are the visible part of `sponge`, and include acquisition, reporting and analysis tools.
+`sponge-project` contains the source code, libraries, tests, resources, build scripts and other files needed to develop, build, test and run **sponge**.  Not all the source code is in the `sponge-project` repository, but `sponge-project` has scripts to clone the repositories containing the rest of the **sponge** source code.
 
-Modules are loosely coupled via a RESTful (or at least RESTish) API, mainly PUT messages sent from input streamers to the database module and GET messages sent from output streamers to the database module, with appropriate responses from the database module in each case. 
+Getting started
+---------------
+1. Make sure you have a few essential pieces of software installed:
+    * java JRE 1.7 or greater
+    * git
+    * a modern web browser (e.g. Chrome, Firefox, Safari)
 
-More interesting than the application architecture perhaps is the way it is virtualized.  Particular modular configurations (data sources, filters, analytics, queries, reports) are created and deployed on demand.  Such a configuration is called, naturally, a **sponge**.  The `sponge` service is simply a way to create, use, archive and share **sponge** data objects.
-
-The following describes the three module categories (data, input and output) comprising the `sponge` platform.
-
-### data module
-
-A data module is essentially a database with a web api.  A **sponge** object includes a single data module, but different **sponge** objects can have different data modules.
-
-Conceptually, a data module is a consumer of input streams and a generator of output streams.  The input streams are streams of documents.  If a document has an id field, and a document with that id already exists, the existing document is updated; otherwise, the input document is added to the database.
-
-### input modules
-
-An input module manages a stream of updates to the data module. 
-
-### output modules
-
-An output module sends requests to the data module and accepts a stream of data in response.
+2. From a terminal, clone the `sponge-project` repo:
+```
+    git clone https://github.com/spnge/sponge-project.git
+```
+3. Go to the `sponge-project` directory and launch the project:
+```
+    cd sponge-project
+    ./run.sh
+```
+4. Open a browser and go to `localhost:7878`.  If all goes well, you will see a control panel with functions for setting up, building, testing and running **sponge**.
 
 
+More info
+---------
 
-
-
-
+[sponge technical overview](docs/sponge-tech.md)
 
