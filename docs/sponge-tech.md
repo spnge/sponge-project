@@ -23,6 +23,7 @@ In addition to configuration information, a `sponge` caches state information ge
 Document Streams
 ----------------
 
+A document stream is a logical connection over which data objects encoded in JSON are transferred.  Conceptually a stream is unidirectional and continuous; documents flow from producer to consumer, and the connection stays open as long as the `sponge` is active.  The actual connection may well be bidirectional and intermittent, however.
 
 Services
 -------
@@ -31,7 +32,7 @@ The following describes the three module categories (data, input and output) com
 
 ### data service
 
-A `sponge` object includes a single data service.  Conceptually, a data service is a consumer of input document streams and a generator of output document streams.  Generally, if an input document has an id field, and a document with that id hsa already been persisted by the data service, the existing document is updated; otherwise, the input document is added to the persisted store.
+A `sponge` object includes a single data service.  Conceptually, a data service is a consumer of input document streams and a producer of output document streams.  Generally, if an input document has an id field, and a document with that id has already been persisted by the data service, the existing document is updated; otherwise, the input document is added to the persisted store.
 
 Internally, a data service is likely to be implemented on a database.  A no-sql document store such as Mongo is a natural fit for the sponge data model.
 
