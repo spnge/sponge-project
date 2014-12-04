@@ -4,37 +4,44 @@ sponge technical overview
 Architecture
 ------------
 
-The architecture of **sponge** is highly modular.  It consists of a data module, input modules and output modules, accessed and configured via a simple web application.  The input and output modules are the visible part of **sponge**, and include acquisition, reporting and analysis tools.  The data module is not directly visible to the user.  It provides persistence, retrieval and query capabilities.
+The architecture of **sponge** is highly modular.  It consists of a collection of loosely coupled services which are accessed and configured via a simple web application.  The services fall broadly into three categories: services that acquire and filter data; services that persist data; and services that extract and use data.
 
-Modules are coupled via document streams, which are loose data connections implemented RESTfully over http or RESTishly over websockets.  What makes the connections loose is that they are nontransactional; each transfer of a document succeeds or fails on its own, independently of any other transfer.  Transactional support is possible, but must implemented in the application.  The benefit of this extra work is superior performance at the lower level.
+Services are connected via document streams.  In simplified form, input services stream documents to persistence services which stream documents to output services.  This leaves out all the interesting stuff (how input services get their documents, what output services do with their documents) but accurately describes the high level architecture.
 
-More interesting than the application architecture is the way it is virtualized.  Particular modular configurations (data sources, filters, analytics, queries, reports) are created and deployed on demand.  Such a configuration is called, naturally, a `sponge`.  The **sponge** service is simply a way to create, use, archive and share `sponge` data objects.
+What makes the horizontal connections among services loose is that they are one-way and nontransactional.  Each transfer of a document succeeds or fails on its own, independently of any other transfer.  Two-way communication occurs by having two connections, one in each direction.  Transactional control is possible, but must implemented by logic in the services.  The rationale for this is that the knowledge required to optimally organize documents into transactions exists only at higher levels, and handling it in the data channel is grossly inefficient.
+
+`sponge` Objects
+----------------
+
+The more interesting looseness is vertical, between the  higher level of user experience and the lower level of implementation.  Users do not engage directly with services.  Rather, users engage with abstract service configuration objects, which specify service requirements, settings and parameters. Such an abstract service configuration object is called a `sponge`.
+
+`sponges` are mapped to actual services only when activated, and only as needed.  This lazy service mapping provides tremendous efficiency and scalability.  At runtime, the persistence service might be mapped to some rows in a database table, or an entire table, or an entire database.  And the user need not know. 
+
+In addition to configuration information, a `sponge` caches state information generated when it is deployed.  In particular, this includes data that has been acquired and persisted.  To a user, a `sponge` is a living document that creates itself by absorbing data from some source (web site, file, api) and safekeeps it for further use.
+      
+
+Document Streams
+----------------
 
 
-Modules
+Services
 -------
 
 The following describes the three module categories (data, input and output) comprising the **sponge** instantiaton pattern.
 
-### data module
+### data service
 
-A `sponge` object includes a single data module, but different `sponge` objects can have different data modules.
+A `sponge` object includes a single data service.  Conceptually, a data service is a consumer of input document streams and a generator of output document streams.  Generally, if an input document has an id field, and a document with that id hsa already been persisted by the data service, the existing document is updated; otherwise, the input document is added to the persisted store.
 
-Conceptually, a data module is a consumer of input streams and a generator of output streams.  The input streams are streams of documents.  If a document has an id field, and a document with that id already exists, the existing document is updated; otherwise, the input document is added to the database.
+Internally, a data service is likely to be implemented on a database.  A no-sql document store such as Mongo is a natural fit for the sponge data model.
 
-Internally, a datamodule is likely to be implemented on a database.  A no-sql document store such as Mongo is a natural fit for the sponge data model.
+### input services
 
-### input modules
+An input service generates or processes a stream of updates to the data service. 
 
-An input module manages a stream of updates to the data module. 
+### output services
 
-### output modules
-
-An output module sends requests to the data module and accepts a stream of data in response.
-
-
-
-
+An output service sends requests to the data service and accepts document streams in response.
 
 
 
