@@ -26,19 +26,19 @@ Document Streams
 A document stream is a logical connection over which data objects encoded in JSON are transferred.  Conceptually a stream is unidirectional and continuous; documents flow from producer to consumer, and the connection stays open as long as the `sponge` is active.  The actual connection may well be bidirectional and intermittent, however.
 
 Services
--------
+--------
 
-The following describes the three module categories (data, input and output) comprising the **sponge** instantiaton pattern.
+The following describes the three service categories (data, input and output) embodied in a `sponge` object.
 
 ### data service
 
-A `sponge` object includes a single data service.  Conceptually, a data service is a consumer of input document streams and a producer of output document streams.  Generally, if an input document has an id field, and a document with that id has already been persisted by the data service, the existing document is updated; otherwise, the input document is added to the persisted store.
+At the heart of a `sponge` object is a data service.  Conceptually, a data service is a consumer of input document streams and a producer of output document streams.  Input streams provide data to be persisted and updates to that data.  Output streams are generated in response to queries and consist of data extracted from persisted data.
 
-Internally, a data service is likely to be implemented on a database.  A no-sql document store such as Mongo is a natural fit for the sponge data model.
+Internally, a data service is likely to use a database as its persistent store.  A no-sql document store such as Mongo is a natural fit for the sponge data model.
 
 ### input services
 
-An input service generates or processes a stream of updates to the data service. 
+An input service generates or processes a stream of documents to the data service. 
 
 ### output services
 
